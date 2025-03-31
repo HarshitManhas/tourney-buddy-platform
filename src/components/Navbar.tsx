@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, Trophy, Plus } from 'lucide-react';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -32,6 +32,12 @@ const Navbar = () => {
           <Link to="/about" className="text-sm font-medium text-gray-700 hover:text-primary">
             About
           </Link>
+          <Button asChild variant="outline" className="ml-2 gap-2">
+            <Link to="/create-tournament">
+              <Trophy size={16} />
+              <span>Create Tournament</span>
+            </Link>
+          </Button>
           <Button asChild variant="outline" className="ml-2">
             <Link to="/login">Login</Link>
           </Button>
@@ -86,6 +92,12 @@ const Navbar = () => {
               About
             </Link>
             <div className="flex flex-col space-y-2 pt-2">
+              <Button asChild variant="outline" className="gap-2 w-full justify-center">
+                <Link to="/create-tournament" onClick={() => setIsMenuOpen(false)}>
+                  <Trophy size={16} />
+                  <span>Create Tournament</span>
+                </Link>
+              </Button>
               <Button asChild variant="outline">
                 <Link to="/login" onClick={() => setIsMenuOpen(false)}>Login</Link>
               </Button>
