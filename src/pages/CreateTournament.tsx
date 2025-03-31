@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Calendar, Clock, MapPin, Plus, Save, X, Trash } from "lucide-react";
+import { Calendar, Clock, MapPin, Plus, Save, X, Trash, Image, ImagePlus } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -58,6 +58,10 @@ const CreateTournament = () => {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [sports, setSports] = useState<SportConfig[]>([]);
+  const [tournamentLogo, setTournamentLogo] = useState<File | null>(null);
+  const [tournamentBanner, setTournamentBanner] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [bannerPreview, setBannerPreview] = useState<string | null>(null);
   
   const form = useForm<TournamentFormValues>({
     resolver: zodResolver(tournamentFormSchema),
@@ -80,6 +84,30 @@ const CreateTournament = () => {
     },
   });
 
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setTournamentLogo(file);
+      const reader = new FileReader();
+      reader.onload = () => {
+        setLogoPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleBannerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setTournamentBanner(file);
+      const reader = new FileReader();
+      reader.onload = () => {
+        setBannerPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const onSubmit = (values: TournamentFormValues) => {
     if (step === 1) {
       if (sports.length === 0) {
@@ -94,8 +122,13 @@ const CreateTournament = () => {
       setStep(2);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } else {
-      // Here we would submit all the data including form values and sports
-      console.log({ ...values, sports });
+      // Here we would submit all the data including form values, sports, logo and banner
+      console.log({ 
+        ...values, 
+        sports, 
+        logo: tournamentLogo ? tournamentLogo.name : null, 
+        banner: tournamentBanner ? tournamentBanner.name : null 
+      });
       toast({
         title: "Tournament Created!",
         description: "Your tournament has been created successfully",
@@ -135,6 +168,111 @@ const CreateTournament = () => {
           {step === 1 ? (
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+                {/* Tournament Media Section */}
+                <div className="space-y-6">
+                  <h2 className="text-xl font-semibold">Tournament Media</h2>
+                  
+                  <div className="grid gap-6 md:grid-cols-2">
+                    {/* Tournament Logo Upload */}
+                    <div>
+                      <FormLabel>Tournament Logo</FormLabel>
+                      <div 
+                        className={`mt-2 flex h-[150px] cursor-pointer flex-col items-center justify-center rounded-md border border-dashed ${logoPreview ? 'border-primary' : 'border-muted-foreground/25'} bg-muted/50 p-4 transition-colors hover:bg-muted`}
+                        onClick={() => document.getElementById('logo-upload')?.click()}
+                      >
+                        {logoPreview ? (
+                          <div className="relative h-full w-full">
+                            <img 
+                              src={logoPreview} 
+                              alt="Tournament logo preview" 
+                              className="h-full w-full object-contain" 
+                            />
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="icon"
+                              className="absolute right-0 top-0"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setTournamentLogo(null);
+                                setLogoPreview(null);
+                              }}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col items-center justify-center space-y-2 text-center">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                              <Image className="h-5 w-5 text-primary" />
+                            </div>
+                            <span className="text-sm font-medium">Upload Logo</span>
+                            <span className="text-xs text-muted-foreground">
+                              Recommended size: 200x200px
+                            </span>
+                          </div>
+                        )}
+                        <Input
+                          id="logo-upload"
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={handleLogoChange}
+                        />
+                      </div>
+                    </div>
+                    
+                    {/* Tournament Banner Upload */}
+                    <div>
+                      <FormLabel>Tournament Banner</FormLabel>
+                      <div 
+                        className={`mt-2 flex h-[150px] cursor-pointer flex-col items-center justify-center rounded-md border border-dashed ${bannerPreview ? 'border-primary' : 'border-muted-foreground/25'} bg-muted/50 p-4 transition-colors hover:bg-muted`}
+                        onClick={() => document.getElementById('banner-upload')?.click()}
+                      >
+                        {bannerPreview ? (
+                          <div className="relative h-full w-full">
+                            <img 
+                              src={bannerPreview} 
+                              alt="Tournament banner preview" 
+                              className="h-full w-full object-cover" 
+                            />
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="icon"
+                              className="absolute right-0 top-0"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setTournamentBanner(null);
+                                setBannerPreview(null);
+                              }}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col items-center justify-center space-y-2 text-center">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                              <ImagePlus className="h-5 w-5 text-primary" />
+                            </div>
+                            <span className="text-sm font-medium">Upload Banner</span>
+                            <span className="text-xs text-muted-foreground">
+                              Recommended size: 1200x400px
+                            </span>
+                          </div>
+                        )}
+                        <Input
+                          id="banner-upload"
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={handleBannerChange}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="grid gap-8 md:grid-cols-2">
                   {/* Tournament Information Section */}
                   <div className="space-y-6">
