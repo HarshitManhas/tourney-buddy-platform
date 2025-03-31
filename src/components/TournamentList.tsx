@@ -81,11 +81,11 @@ const mockTournaments: TournamentCardProps[] = [
 
 const TournamentList = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [sportFilter, setSportFilter] = useState("");
+  const [sportFilter, setSportFilter] = useState("all");
   
   const filteredTournaments = mockTournaments.filter(tournament => {
     const matchesSearch = tournament.title.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesSport = sportFilter === "" || tournament.sport === sportFilter;
+    const matchesSport = sportFilter === "all" || tournament.sport === sportFilter;
     return matchesSearch && matchesSport;
   });
   
@@ -122,7 +122,7 @@ const TournamentList = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectGroup>
-                  <SelectItem value="">All Sports</SelectItem>
+                  <SelectItem value="all">All Sports</SelectItem>
                   {sports.map(sport => (
                     <SelectItem key={sport} value={sport}>
                       {sport}
