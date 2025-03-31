@@ -11,9 +11,11 @@ const Navbar = () => {
     <nav className="border-b bg-white py-4">
       <div className="container mx-auto flex items-center justify-between px-4">
         <Link to="/" className="flex items-center">
-          <span className="text-xl font-bold text-primary">
-            Sports<span className="text-accent">Folio</span>
-          </span>
+          <img 
+            src="/lovable-uploads/ece7698e-20da-4282-bbd3-6b1af82f4fff.png" 
+            alt="SportsFolio Logo" 
+            className="h-10 w-auto"
+          />
         </Link>
 
         {/* Desktop Navigation */}
