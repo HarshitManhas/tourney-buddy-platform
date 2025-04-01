@@ -49,7 +49,7 @@ const TournamentMedia = ({
           onChange={handleBannerChange}
         />
         
-        <div className="absolute bottom-0 left-6 transform translate-y-1/2">
+        <div className="absolute bottom-0 left-6 transform -translate-y-1/2">
           <div className="relative">
             <Avatar className="h-24 w-24 border-4 border-background bg-white shadow-md">
               {logoPreview ? (
@@ -80,7 +80,7 @@ const TournamentMedia = ({
         </div>
       </div>
       
-      <div className="pt-14 pb-4 text-center">
+      <div className="pt-6 pb-4 text-center">
         <h2 className="text-2xl font-bold">TOURNAMENT CREATION FORM</h2>
         <div className="mt-2 flex justify-center">
           <Button
