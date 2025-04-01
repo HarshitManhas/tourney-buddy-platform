@@ -196,7 +196,7 @@ const CreateTournament = () => {
                     onChange={handleBannerChange}
                   />
                   
-                  <div className="absolute -bottom-10 left-6">
+                  <div className="absolute bottom-0 left-6 transform translate-y-1/2">
                     <div className="relative">
                       <Avatar className="h-24 w-24 border-4 border-background bg-white shadow-md">
                         {logoPreview ? (
@@ -210,7 +210,7 @@ const CreateTournament = () => {
                       <Button
                         type="button"
                         variant="secondary"
-                        size="sm"
+                        size="circle"
                         className="absolute -bottom-1 -right-1 rounded-full p-1.5"
                         onClick={() => document.getElementById('logo-upload')?.click()}
                       >
