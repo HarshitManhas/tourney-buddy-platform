@@ -162,16 +162,17 @@ const SportSettings = ({ onAddSport }: SportSettingsProps) => {
   };
 
   return (
-    <div>
-      {!showForm ? (
-        <Button 
-          variant="outline" 
-          className="w-full text-green-600 border-green-600 hover:text-green-700 hover:bg-green-50"
-          onClick={() => setShowForm(true)}
-        >
-          <Plus className="mr-2 h-4 w-4" /> ADD SPORT
-        </Button>
-      ) : (
+    <div className="space-y-6">
+      <Button 
+        variant="outline" 
+        className="w-full text-green-600 border-green-600 hover:text-green-700 hover:bg-green-50"
+        onClick={() => setShowForm(true)}
+        disabled={showForm}
+      >
+        <Plus className="mr-2 h-4 w-4" /> ADD SPORT
+      </Button>
+
+      {showForm && (
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-medium">Add Sport</h3>
@@ -286,9 +287,27 @@ const SportSettings = ({ onAddSport }: SportSettingsProps) => {
             />
           </div>
 
-          <Button onClick={handleAddSport} className="w-full">
-            <Plus className="mr-2 h-4 w-4" /> Add Sport
-          </Button>
+          <div className="flex justify-between items-center gap-4">
+            <Button onClick={handleAddSport} className="flex-1">
+              <Plus className="mr-2 h-4 w-4" /> Add Sport
+            </Button>
+            <Button 
+              variant="outline" 
+              className="flex-1 text-green-600 border-green-600 hover:text-green-700 hover:bg-green-50"
+              onClick={() => {
+                handleAddSport();
+                setSelectedSport("");
+                setEventName("");
+                setFormat("");
+                setMaxTeams("");
+                setGender("");
+                setPlayType("");
+                setAdditionalDetails("");
+              }}
+            >
+              <Plus className="mr-2 h-4 w-4" /> Add & Continue
+            </Button>
+          </div>
         </div>
       )}
     </div>

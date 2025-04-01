@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -52,7 +51,7 @@ type SportConfig = {
   maxTeams: number;
   gender: string;
   playType?: string;
-  additionalDetails?: string; // Add this property to the type definition
+  additionalDetails?: string;
 };
 
 const CreateTournament = () => {
@@ -231,6 +230,17 @@ const CreateTournament = () => {
                 
                 <div className="pt-14 pb-4 text-center">
                   <h2 className="text-2xl font-bold">TOURNAMENT CREATION FORM</h2>
+                  <div className="mt-2 flex justify-center">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="flex items-center gap-2"
+                      onClick={() => document.getElementById('logo-upload')?.click()}
+                    >
+                      <ImagePlus className="h-4 w-4" />
+                      Add Tournament Logo
+                    </Button>
+                  </div>
                 </div>
               </div>
 
