@@ -157,7 +157,6 @@ const CreateTournament = () => {
       <Navbar />
       <div className="container mx-auto p-4 py-8">
         <div className="mb-6 flex items-center justify-between">
-          <h1 className="text-3xl font-bold">Tournament Creation Form</h1>
           <div className="text-sm text-muted-foreground">
             Step {step} of 2
           </div>
