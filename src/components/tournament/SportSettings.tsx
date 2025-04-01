@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Plus, X } from "lucide-react";
 import { v4 as uuidv4 } from "uuid";
@@ -22,7 +21,7 @@ type SportConfig = {
   maxTeams: number;
   gender: string;
   playType?: string; // For sports like tennis, badminton, etc.
-  additionalDetails?: string;
+  additionalDetails?: string; // Ensure this property is in the SportConfig type here as well
 };
 
 interface SportSettingsProps {
@@ -32,7 +31,7 @@ interface SportSettingsProps {
 // Sports that can be played in singles, doubles, or mixed
 const racquetSports = [
   "Tennis",
-  "Badminton",
+  "Badminton", 
   "Table Tennis",
 ];
 

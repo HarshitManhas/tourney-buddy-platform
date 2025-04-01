@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -51,6 +52,7 @@ type SportConfig = {
   maxTeams: number;
   gender: string;
   playType?: string;
+  additionalDetails?: string; // Add this property to the type definition
 };
 
 const CreateTournament = () => {
