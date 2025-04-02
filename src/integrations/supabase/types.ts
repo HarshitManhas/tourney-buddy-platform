@@ -9,7 +9,75 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      tournaments: {
+        Row: {
+          about: string | null
+          city: string | null
+          contact_email: string | null
+          contact_name: string | null
+          contact_phone: string | null
+          created_at: string | null
+          creator_id: string | null
+          end_date: string | null
+          entry_fee: number | null
+          format: string | null
+          id: string
+          image_url: string | null
+          location: string | null
+          registration_due_date: string | null
+          sport: string | null
+          start_date: string | null
+          state: string | null
+          team_limit: number | null
+          teams_registered: number | null
+          tournament_name: string
+        }
+        Insert: {
+          about?: string | null
+          city?: string | null
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string | null
+          creator_id?: string | null
+          end_date?: string | null
+          entry_fee?: number | null
+          format?: string | null
+          id?: string
+          image_url?: string | null
+          location?: string | null
+          registration_due_date?: string | null
+          sport?: string | null
+          start_date?: string | null
+          state?: string | null
+          team_limit?: number | null
+          teams_registered?: number | null
+          tournament_name: string
+        }
+        Update: {
+          about?: string | null
+          city?: string | null
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string | null
+          creator_id?: string | null
+          end_date?: string | null
+          entry_fee?: number | null
+          format?: string | null
+          id?: string
+          image_url?: string | null
+          location?: string | null
+          registration_due_date?: string | null
+          sport?: string | null
+          start_date?: string | null
+          state?: string | null
+          team_limit?: number | null
+          teams_registered?: number | null
+          tournament_name?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
