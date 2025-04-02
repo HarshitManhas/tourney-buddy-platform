@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,7 +13,12 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Database } from "@/integrations/supabase/types";
 
-type TournamentDetails = Database['public']['Tables']['tournaments']['Row'];
+type Tournament = Database['public']['Tables']['tournaments']['Row'];
+
+// Create an extended type that includes computed properties
+interface TournamentDetails extends Tournament {
+  creator_name?: string;
+}
 
 const TournamentDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -32,7 +38,7 @@ const TournamentDetail = () => {
             id, tournament_name, sport, format, start_date, end_date, 
             registration_due_date, location, city, state, about, 
             entry_fee, teams_registered, team_limit, image_url, creator_id,
-            contact_name as creator_name, contact_email, contact_phone
+            contact_name, contact_email, contact_phone
           `)
           .eq('id', id)
           .single();
@@ -41,7 +47,13 @@ const TournamentDetail = () => {
           throw error;
         }
 
-        setTournament(data);
+        if (data) {
+          // Map contact_name to creator_name for the UI
+          setTournament({
+            ...data,
+            creator_name: data.contact_name
+          });
+        }
       } catch (error) {
         console.error("Error fetching tournament details:", error);
         toast.error("Failed to load tournament details");
@@ -84,11 +96,11 @@ const TournamentDetail = () => {
   };
 
   const isRegistrationOpen = tournament 
-    ? new Date(tournament.registration_due_date) > new Date() 
+    ? new Date(tournament.registration_due_date || '') > new Date() 
     : false;
   
   const isFull = tournament 
-    ? tournament.teams_registered >= tournament.team_limit 
+    ? (tournament.teams_registered || 0) >= (tournament.team_limit || 0) 
     : false;
 
   return (
@@ -203,7 +215,7 @@ const TournamentDetail = () => {
                         <div>
                           <p className="font-medium">Tournament Dates</p>
                           <p className="text-sm text-muted-foreground">
-                            {new Date(tournament.start_date).toLocaleDateString()} - {new Date(tournament.end_date).toLocaleDateString()}
+                            {new Date(tournament.start_date || '').toLocaleDateString()} - {new Date(tournament.end_date || '').toLocaleDateString()}
                           </p>
                         </div>
                       </div>
@@ -213,7 +225,7 @@ const TournamentDetail = () => {
                         <div>
                           <p className="font-medium">Registration Deadline</p>
                           <p className="text-sm text-muted-foreground">
-                            {new Date(tournament.registration_due_date).toLocaleDateString()}
+                            {new Date(tournament.registration_due_date || '').toLocaleDateString()}
                           </p>
                         </div>
                       </div>
@@ -242,7 +254,7 @@ const TournamentDetail = () => {
                         <div>
                           <p className="font-medium">Contact Person</p>
                           <p className="text-sm text-muted-foreground">
-                            {tournament.creator_name}
+                            {tournament.creator_name || tournament.contact_name || "Not specified"}
                           </p>
                         </div>
                       </div>
@@ -252,7 +264,7 @@ const TournamentDetail = () => {
                         <div>
                           <p className="font-medium">Email</p>
                           <p className="text-sm text-muted-foreground">
-                            {tournament.contact_email}
+                            {tournament.contact_email || "Not specified"}
                           </p>
                         </div>
                       </div>
@@ -262,7 +274,7 @@ const TournamentDetail = () => {
                         <div>
                           <p className="font-medium">Phone</p>
                           <p className="text-sm text-muted-foreground">
-                            {tournament.contact_phone}
+                            {tournament.contact_phone || "Not specified"}
                           </p>
                         </div>
                       </div>
