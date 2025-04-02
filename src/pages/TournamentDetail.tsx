@@ -15,8 +15,9 @@ import { Database } from "@/integrations/supabase/types";
 
 type Tournament = Database['public']['Tables']['tournaments']['Row'];
 
-// Create an extended type that includes computed properties
-interface TournamentDetails extends Tournament {
+// Create a partial version of Tournament for our component state
+// This allows us to specify only the fields we need
+interface TournamentDetails extends Partial<Tournament> {
   creator_name?: string;
 }
 
@@ -84,7 +85,7 @@ const TournamentDetail = () => {
         if (!prev) return prev;
         return {
           ...prev,
-          teams_registered: prev.teams_registered + 1
+          teams_registered: (prev.teams_registered || 0) + 1
         };
       });
     } catch (error) {
