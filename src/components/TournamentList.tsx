@@ -1,96 +1,68 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import TournamentCard, { TournamentCardProps } from "@/components/TournamentCard";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search } from "lucide-react";
-
-// Mock data for tournaments
-const mockTournaments: TournamentCardProps[] = [
-  {
-    id: "1",
-    title: "Summer Basketball League",
-    sport: "Basketball",
-    format: "League",
-    date: "Jun 15 - Aug 20, 2023",
-    location: "Downtown Sports Complex",
-    entryFee: "$150",
-    teamsRegistered: 12,
-    teamLimit: 16,
-    image: "https://images.unsplash.com/photo-1546519638-68e109acd27d?q=80&w=2070&auto=format&fit=crop"
-  },
-  {
-    id: "2",
-    title: "Regional Soccer Championship",
-    sport: "Soccer",
-    format: "Knockout",
-    date: "Jul 10 - Jul 25, 2023",
-    location: "City Stadium",
-    entryFee: "$200",
-    teamsRegistered: 24,
-    teamLimit: 32,
-    image: "https://images.unsplash.com/photo-1579952363873-27f3bade9f55?q=80&w=2070&auto=format&fit=crop"
-  },
-  {
-    id: "3",
-    title: "Community Tennis Open",
-    sport: "Tennis",
-    format: "Round Robin",
-    date: "Aug 5 - Aug 7, 2023",
-    location: "Tennis Club",
-    entryFee: "$50",
-    teamsRegistered: 32,
-    teamLimit: 32
-  },
-  {
-    id: "4",
-    title: "Weekend Cricket Tournament",
-    sport: "Cricket",
-    format: "Double Elimination",
-    date: "Sep 2 - Sep 3, 2023",
-    location: "Cricket Ground",
-    entryFee: "$180",
-    teamsRegistered: 6,
-    teamLimit: 8
-  },
-  {
-    id: "5",
-    title: "Volleyball Beach Series",
-    sport: "Volleyball",
-    format: "League",
-    date: "Jun 1 - Sep 30, 2023",
-    location: "City Beach",
-    entryFee: "$120",
-    teamsRegistered: 10,
-    teamLimit: 12,
-    image: "https://images.unsplash.com/photo-1612872087720-bb876e2e67d1?q=80&w=2007&auto=format&fit=crop"
-  },
-  {
-    id: "6",
-    title: "5K Summer Run",
-    sport: "Running",
-    format: "Race",
-    date: "Aug 15, 2023",
-    location: "Central Park",
-    entryFee: "$25",
-    teamsRegistered: 150,
-    teamLimit: 300
-  },
-];
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/components/ui/sonner";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const TournamentList = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [sportFilter, setSportFilter] = useState("all");
+  const [tournaments, setTournaments] = useState<TournamentCardProps[]>([]);
+  const [loading, setLoading] = useState(true);
   
-  const filteredTournaments = mockTournaments.filter(tournament => {
+  useEffect(() => {
+    const fetchTournaments = async () => {
+      try {
+        setLoading(true);
+        const { data, error } = await supabase
+          .from('tournaments')
+          .select('*');
+
+        if (error) {
+          throw error;
+        }
+
+        if (data) {
+          // Transform data to match TournamentCardProps format
+          const formattedData = data.map(item => ({
+            id: item.id,
+            title: item.tournament_name,
+            sport: item.sport || "General",
+            format: item.format || "Not specified",
+            date: `${new Date(item.start_date).toLocaleDateString()} - ${new Date(item.end_date).toLocaleDateString()}`,
+            location: item.location || item.city || "Not specified",
+            entryFee: item.entry_fee ? `₹${item.entry_fee}` : "Free",
+            teamsRegistered: item.teams_registered || 0,
+            teamLimit: item.team_limit || 10,
+            image: item.image_url || undefined
+          }));
+          
+          setTournaments(formattedData);
+        }
+      } catch (error) {
+        console.error("Error fetching tournaments:", error);
+        toast.error("Failed to load tournaments");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTournaments();
+  }, []);
+  
+  const filteredTournaments = tournaments.filter(tournament => {
     const matchesSearch = tournament.title.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesSport = sportFilter === "all" || tournament.sport === sportFilter;
     return matchesSearch && matchesSport;
   });
   
   // Get unique sports for filter
-  const sports = Array.from(new Set(mockTournaments.map(t => t.sport)));
+  const sports = Array.from(new Set(tournaments.map(t => t.sport)));
   
   return (
     <div className="container mx-auto px-4 py-8">
@@ -135,17 +107,32 @@ const TournamentList = () => {
         </div>
       </div>
       
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {filteredTournaments.length > 0 ? (
-          filteredTournaments.map(tournament => (
-            <TournamentCard key={tournament.id} {...tournament} />
-          ))
-        ) : (
-          <div className="col-span-full py-12 text-center">
-            <p className="text-lg text-muted-foreground">No tournaments found. Try adjusting your filters.</p>
-          </div>
-        )}
-      </div>
+      {loading ? (
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="space-y-3">
+              <Skeleton className="h-40 w-full" />
+              <Skeleton className="h-4 w-1/3" />
+              <Skeleton className="h-8 w-3/4" />
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-2/3" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {filteredTournaments.length > 0 ? (
+            filteredTournaments.map(tournament => (
+              <TournamentCard key={tournament.id} {...tournament} />
+            ))
+          ) : (
+            <div className="col-span-full py-12 text-center">
+              <p className="text-lg text-muted-foreground">No tournaments found. Try adjusting your filters.</p>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
