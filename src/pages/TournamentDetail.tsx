@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,28 +10,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { Database } from "@/integrations/supabase/types";
 
-interface TournamentDetails {
-  id: string;
-  tournament_name: string;
-  sport: string;
-  format: string;
-  start_date: string;
-  end_date: string;
-  registration_due_date: string;
-  location: string;
-  city: string;
-  state: string;
-  about: string;
-  entry_fee: number | null;
-  teams_registered: number;
-  team_limit: number;
-  image_url: string | null;
-  creator_id: string;
-  creator_name: string;
-  contact_email: string;
-  contact_phone: string;
-}
+type TournamentDetails = Database['public']['Tables']['tournaments']['Row'];
 
 const TournamentDetail = () => {
   const { id } = useParams<{ id: string }>();

@@ -8,6 +8,9 @@ import { Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Database } from "@/integrations/supabase/types";
+
+type Tournament = Database['public']['Tables']['tournaments']['Row'];
 
 const TournamentList = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -29,12 +32,12 @@ const TournamentList = () => {
 
         if (data) {
           // Transform data to match TournamentCardProps format
-          const formattedData = data.map(item => ({
+          const formattedData = data.map((item: Tournament) => ({
             id: item.id,
             title: item.tournament_name,
             sport: item.sport || "General",
             format: item.format || "Not specified",
-            date: `${new Date(item.start_date).toLocaleDateString()} - ${new Date(item.end_date).toLocaleDateString()}`,
+            date: `${new Date(item.start_date || '').toLocaleDateString()} - ${new Date(item.end_date || '').toLocaleDateString()}`,
             location: item.location || item.city || "Not specified",
             entryFee: item.entry_fee ? `₹${item.entry_fee}` : "Free",
             teamsRegistered: item.teams_registered || 0,
