@@ -82,17 +82,6 @@ const TournamentMedia = ({
       
       <div className="pt-6 pb-4 text-center">
         <h2 className="text-2xl font-bold">TOURNAMENT CREATION FORM</h2>
-        <div className="mt-2 flex justify-center">
-          <Button
-            type="button"
-            variant="outline"
-            className="flex items-center gap-2"
-            onClick={() => document.getElementById('logo-upload')?.click()}
-          >
-            <ImagePlus className="h-4 w-4" />
-            Add Tournament Logo
-          </Button>
-        </div>
       </div>
     </div>
   );
