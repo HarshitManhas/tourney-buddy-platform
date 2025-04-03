@@ -1,8 +1,27 @@
 
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 
 const Hero = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  const handleCreateTournament = () => {
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "Please login to create a tournament",
+        variant: "destructive",
+      });
+      navigate("/login");
+      return;
+    }
+    navigate("/create-tournament");
+  };
+
   return (
     <div className="relative overflow-hidden">
       <div className="hero-gradient absolute inset-0 opacity-10" />
@@ -19,10 +38,19 @@ const Hero = () => {
           </p>
           
           <div className="flex flex-col space-y-4 sm:flex-row sm:space-x-4 sm:space-y-0">
-            <Button asChild size="lg" className="px-8">
-              <Link to="/create-tournament">Create Tournament</Link>
+            <Button 
+              size="lg" 
+              className="px-8"
+              onClick={handleCreateTournament}
+            >
+              Create Tournament
             </Button>
-            <Button asChild size="lg" variant="outline" className="px-8">
+            <Button 
+              asChild 
+              size="lg" 
+              variant="outline" 
+              className="px-8"
+            >
               <Link to="/tournaments">Browse Tournaments</Link>
             </Button>
           </div>
