@@ -13,8 +13,9 @@ const AuthGuard = ({ children }: AuthGuardProps) => {
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto"></div>
-          <p className="mt-4">Loading...</p>
+          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+          <p className="mt-4 text-lg font-medium">Loading...</p>
+          <p className="mt-2 text-sm text-muted-foreground">Please wait while we verify your authentication</p>
         </div>
       </div>
     );

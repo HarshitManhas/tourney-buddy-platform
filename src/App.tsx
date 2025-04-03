@@ -9,6 +9,7 @@ import NotFound from "./pages/NotFound";
 import CreateTournament from "./pages/CreateTournament";
 import TournamentsPage from "./pages/TournamentsPage";
 import TournamentDetail from "./pages/TournamentDetail";
+import EditTournament from "./pages/EditTournament";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Profile from "./pages/Profile";
@@ -46,6 +47,14 @@ const App = () => (
               element={
                 <AuthGuard>
                   <Profile />
+                </AuthGuard>
+              } 
+            />
+            <Route 
+              path="/tournaments/:id/edit" 
+              element={
+                <AuthGuard>
+                  <EditTournament />
                 </AuthGuard>
               } 
             />
