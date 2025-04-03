@@ -17,9 +17,12 @@ import TournamentInfoForm from "@/components/tournament/TournamentInfoForm";
 import ContactInfoForm from "@/components/tournament/ContactInfoForm";
 import SportsList from "@/components/tournament/SportsList";
 import PaymentDetailsForm from "@/components/tournament/PaymentDetailsForm";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 const CreateTournament = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [step, setStep] = useState(1);
   const [sports, setSports] = useState<SportConfig[]>([]);
   const [tournamentLogo, setTournamentLogo] = useState<File | null>(null);
@@ -72,7 +75,7 @@ const CreateTournament = () => {
     }
   };
 
-  const onSubmit = (values: TournamentFormValues) => {
+  const onSubmit = async (values: TournamentFormValues) => {
     if (step === 1) {
       if (sports.length === 0) {
         toast({
@@ -86,17 +89,60 @@ const CreateTournament = () => {
       setStep(2);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } else {
-      console.log({ 
-        ...values, 
-        sports, 
-        logo: tournamentLogo ? tournamentLogo.name : null, 
-        banner: tournamentBanner ? tournamentBanner.name : null 
-      });
-      toast({
-        title: "Tournament Created!",
-        description: "Your tournament has been created successfully",
-      });
-      navigate("/tournaments");
+      try {
+        if (!user) {
+          toast({
+            title: "Authentication Error",
+            description: "You must be logged in to create a tournament",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        // Prepare tournament data for insertion
+        const tournamentData = {
+          tournament_name: values.tournamentName,
+          about: values.about,
+          start_date: values.startDate,
+          end_date: values.endDate,
+          registration_due_date: values.registrationDueDate,
+          contact_name: values.contactName,
+          contact_email: values.contactEmail,
+          contact_phone: values.contactPhone,
+          city: values.city,
+          state: values.state,
+          sport: sports[0]?.sport || null, // Using first sport for now
+          format: sports[0]?.format || null,
+          entry_fee: parseInt(sports[0]?.entryFee || "0"),
+          team_limit: parseInt(sports[0]?.maxTeams || "10"),
+          creator_id: user.id, // Link to the creator
+          user_id: user.id, // Link to the user
+        };
+
+        const { data, error } = await supabase
+          .from('tournaments')
+          .insert(tournamentData)
+          .select('id')
+          .single();
+
+        if (error) {
+          throw error;
+        }
+
+        toast({
+          title: "Tournament Created!",
+          description: "Your tournament has been created successfully",
+        });
+        
+        navigate(`/tournaments/${data.id}`);
+      } catch (error: any) {
+        console.error('Error creating tournament:', error);
+        toast({
+          title: "Error",
+          description: error.message || "Failed to create tournament",
+          variant: "destructive",
+        });
+      }
     }
   };
 

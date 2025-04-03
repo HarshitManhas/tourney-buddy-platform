@@ -1,11 +1,27 @@
 
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Menu, X, Trophy, Plus } from 'lucide-react';
+import { Menu, X, Trophy, Plus, LogOut, User } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { user, username, signOut } = useAuth();
+  const navigate = useNavigate();
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/login');
+  };
 
   return (
     <nav className="border-b bg-white py-4">
@@ -32,18 +48,50 @@ const Navbar = () => {
           <Link to="/about" className="text-sm font-medium text-gray-700 hover:text-primary">
             About
           </Link>
-          <Button asChild variant="outline" className="ml-2 gap-2">
-            <Link to="/create-tournament">
-              <Trophy size={16} />
-              <span>Create Tournament</span>
-            </Link>
-          </Button>
-          <Button asChild variant="outline" className="ml-2">
-            <Link to="/login">Login</Link>
-          </Button>
-          <Button asChild>
-            <Link to="/register">Register</Link>
-          </Button>
+          
+          {user ? (
+            <>
+              <Button asChild variant="outline" className="ml-2 gap-2">
+                <Link to="/create-tournament">
+                  <Trophy size={16} />
+                  <span>Create Tournament</span>
+                </Link>
+              </Button>
+              
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="gap-2">
+                    <User size={16} />
+                    <span>{username || 'User'}</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link to="/profile">Profile</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/my-tournaments">My Tournaments</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Sign out</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </>
+          ) : (
+            <>
+              <Button asChild variant="outline" className="ml-2">
+                <Link to="/login">Login</Link>
+              </Button>
+              <Button asChild>
+                <Link to="/register">Register</Link>
+              </Button>
+            </>
+          )}
         </div>
 
         {/* Mobile Menu Toggle */}
@@ -92,18 +140,42 @@ const Navbar = () => {
               About
             </Link>
             <div className="flex flex-col space-y-2 pt-2">
-              <Button asChild variant="outline" className="gap-2 w-full justify-center">
-                <Link to="/create-tournament" onClick={() => setIsMenuOpen(false)}>
-                  <Trophy size={16} />
-                  <span>Create Tournament</span>
-                </Link>
-              </Button>
-              <Button asChild variant="outline">
-                <Link to="/login" onClick={() => setIsMenuOpen(false)}>Login</Link>
-              </Button>
-              <Button asChild>
-                <Link to="/register" onClick={() => setIsMenuOpen(false)}>Register</Link>
-              </Button>
+              {user ? (
+                <>
+                  <Button asChild variant="outline" className="gap-2 w-full justify-center">
+                    <Link to="/create-tournament" onClick={() => setIsMenuOpen(false)}>
+                      <Trophy size={16} />
+                      <span>Create Tournament</span>
+                    </Link>
+                  </Button>
+                  <Button asChild variant="outline" className="gap-2 w-full justify-center">
+                    <Link to="/profile" onClick={() => setIsMenuOpen(false)}>
+                      <User size={16} />
+                      <span>{username || 'Profile'}</span>
+                    </Link>
+                  </Button>
+                  <Button 
+                    variant="destructive" 
+                    className="w-full justify-center"
+                    onClick={() => {
+                      handleSignOut();
+                      setIsMenuOpen(false);
+                    }}
+                  >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Sign out</span>
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button asChild variant="outline">
+                    <Link to="/login" onClick={() => setIsMenuOpen(false)}>Login</Link>
+                  </Button>
+                  <Button asChild>
+                    <Link to="/register" onClick={() => setIsMenuOpen(false)}>Register</Link>
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         </div>
