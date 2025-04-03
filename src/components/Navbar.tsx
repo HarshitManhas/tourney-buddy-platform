@@ -62,7 +62,7 @@ const Navbar = () => {
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" className="gap-2">
                     <User size={16} />
-                    <span>{username || 'User'}</span>
+                    <span>{username || 'Profile'}</span>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
