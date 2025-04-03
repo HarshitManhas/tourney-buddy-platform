@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Menu, X, Trophy, Plus, LogOut, User } from 'lucide-react';
+import { Menu, X, Trophy, Plus, LogOut, User, MessageSquare } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   DropdownMenu,
@@ -55,6 +55,13 @@ const Navbar = () => {
                 <Link to="/create-tournament">
                   <Trophy size={16} />
                   <span>Create Tournament</span>
+                </Link>
+              </Button>
+              
+              <Button asChild variant="outline" className="gap-2">
+                <Link to="/messages">
+                  <MessageSquare size={16} />
+                  <span>Messages</span>
                 </Link>
               </Button>
               
@@ -146,6 +153,12 @@ const Navbar = () => {
                     <Link to="/create-tournament" onClick={() => setIsMenuOpen(false)}>
                       <Trophy size={16} />
                       <span>Create Tournament</span>
+                    </Link>
+                  </Button>
+                  <Button asChild variant="outline" className="gap-2 w-full justify-center">
+                    <Link to="/messages" onClick={() => setIsMenuOpen(false)}>
+                      <MessageSquare size={16} />
+                      <span>Messages</span>
                     </Link>
                   </Button>
                   <Button asChild variant="outline" className="gap-2 w-full justify-center">

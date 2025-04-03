@@ -13,6 +13,7 @@ import EditTournament from "./pages/EditTournament";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Profile from "./pages/Profile";
+import MessagesPage from "./pages/MessagesPage";
 import { AuthProvider } from "./contexts/AuthContext";
 import AuthGuard from "./components/AuthGuard";
 
@@ -47,6 +48,14 @@ const App = () => (
               element={
                 <AuthGuard>
                   <Profile />
+                </AuthGuard>
+              } 
+            />
+            <Route 
+              path="/messages" 
+              element={
+                <AuthGuard>
+                  <MessagesPage />
                 </AuthGuard>
               } 
             />
