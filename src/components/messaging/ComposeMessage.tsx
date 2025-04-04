@@ -51,9 +51,9 @@ const ComposeMessage = ({ onMessageSent, preselectedTournamentId }: ComposeMessa
       try {
         setLoading(true);
         
-        // Use the get_user_tournaments RPC function
+        // Use the get_user_tournaments RPC function with updated parameter name
         const { data, error } = await supabase.rpc('get_user_tournaments', {
-          user_id: user.id
+          input_user_id: user.id
         });
           
         if (error) throw error;

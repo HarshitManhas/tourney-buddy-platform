@@ -9,6 +9,44 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      private_messages: {
+        Row: {
+          created_at: string | null
+          id: string
+          message: string
+          read: boolean | null
+          recipient_id: string
+          sender_id: string
+          tournament_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          message: string
+          read?: boolean | null
+          recipient_id: string
+          sender_id: string
+          tournament_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          message?: string
+          read?: boolean | null
+          recipient_id?: string
+          sender_id?: string
+          tournament_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "private_messages_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -26,6 +64,41 @@ export type Database = {
           username?: string
         }
         Relationships: []
+      }
+      tournament_announcements: {
+        Row: {
+          created_at: string | null
+          id: string
+          message: string
+          sender_id: string
+          title: string
+          tournament_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          message: string
+          sender_id: string
+          title: string
+          tournament_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          message?: string
+          sender_id?: string
+          title?: string
+          tournament_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tournament_announcements_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tournament_participants: {
         Row: {
@@ -136,7 +209,55 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      create_tournament_announcement: {
+        Args: {
+          tournament_id: string
+          sender_id: string
+          title: string
+          message_text: string
+        }
+        Returns: string
+      }
+      get_received_messages: {
+        Args: {
+          input_user_id: string
+        }
+        Returns: Json[]
+      }
+      get_sent_messages: {
+        Args: {
+          input_user_id: string
+        }
+        Returns: Json[]
+      }
+      get_tournament_announcements: {
+        Args: {
+          t_id: string
+        }
+        Returns: Json[]
+      }
+      get_user_tournaments: {
+        Args: {
+          input_user_id: string
+        }
+        Returns: Json[]
+      }
+      mark_message_as_read: {
+        Args: {
+          message_id: string
+          current_user_id: string
+        }
+        Returns: boolean
+      }
+      send_private_message: {
+        Args: {
+          sender_id: string
+          recipient_id: string
+          tournament_id: string
+          message_text: string
+        }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never

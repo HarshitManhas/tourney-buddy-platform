@@ -1,20 +1,19 @@
-
 import { useState, useEffect } from "react";
-import { format } from "date-fns";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { Megaphone, Plus } from "lucide-react";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { supabase } from "@/integrations/supabase/client";
+import { MessageSquare, PlusCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { format } from "date-fns";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface Announcement {
   id: string;
@@ -55,9 +54,9 @@ const TournamentAnnouncements = ({ tournamentId, isOrganizer }: TournamentAnnoun
       try {
         setLoading(true);
         
-        // Use the get_tournament_announcements RPC function
+        // Use the get_tournament_announcements RPC function with parameter t_id
         const { data, error } = await supabase.rpc('get_tournament_announcements', {
-          tournament_id: tournamentId
+          t_id: tournamentId
         });
           
         if (error) throw error;
@@ -91,13 +90,13 @@ const TournamentAnnouncements = ({ tournamentId, isOrganizer }: TournamentAnnoun
         
       if (error) throw error;
       
-      toast.success("Announcement published successfully");
+      toast.success("Announcement created successfully");
       form.reset();
       setOpen(false);
       
-      // Refresh announcements
+      // Refresh announcements to show the new one
       const { data, error: fetchError } = await supabase.rpc('get_tournament_announcements', {
-        tournament_id: tournamentId
+        t_id: tournamentId
       });
         
       if (fetchError) throw fetchError;
@@ -105,96 +104,67 @@ const TournamentAnnouncements = ({ tournamentId, isOrganizer }: TournamentAnnoun
       setAnnouncements(data || []);
     } catch (error) {
       console.error("Error creating announcement:", error);
-      toast.error("Failed to publish announcement");
+      toast.error("Failed to create announcement");
     }
   };
   
-  if (loading) {
-    return (
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold">Announcements</h2>
-        </div>
-        {[1, 2].map((i) => (
-          <Card key={i}>
-            <CardHeader>
-              <Skeleton className="h-6 w-3/4" />
-            </CardHeader>
-            <CardContent>
-              <Skeleton className="h-20 w-full" />
-            </CardContent>
-            <CardFooter>
-              <Skeleton className="h-4 w-1/3" />
-            </CardFooter>
-          </Card>
-        ))}
-      </div>
-    );
-  }
-  
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
+    <div>
+      <div className="mb-6 flex items-center justify-between">
         <h2 className="text-2xl font-bold">Announcements</h2>
-        
         {isOrganizer && (
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
               <Button className="gap-2">
-                <Plus size={16} />
-                New Announcement
+                <PlusCircle size={16} />
+                Create Announcement
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[525px]">
+            <DialogContent className="sm:max-w-[475px]">
               <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                   <DialogHeader>
-                    <DialogTitle>Create Tournament Announcement</DialogTitle>
+                    <DialogTitle>Create Announcement</DialogTitle>
                     <DialogDescription>
-                      Share important information with all tournament participants.
+                      Add a new announcement to keep participants informed.
                     </DialogDescription>
                   </DialogHeader>
-                  
-                  <div className="mt-6 space-y-4">
-                    <FormField
-                      control={form.control}
-                      name="title"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Title</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Announcement title" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="message"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Message</FormLabel>
-                          <FormControl>
-                            <Textarea 
-                              placeholder="Enter announcement details..." 
-                              className="h-32"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                  
-                  <DialogFooter className="mt-6">
+                  <FormField
+                    control={form.control}
+                    name="title"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Title</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Announcement Title" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="message"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Message</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="Enter your message here."
+                            className="h-32"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <DialogFooter>
                     <Button type="button" variant="outline" onClick={() => setOpen(false)}>
                       Cancel
                     </Button>
                     <Button type="submit" disabled={form.formState.isSubmitting}>
-                      {form.formState.isSubmitting ? "Publishing..." : "Publish Announcement"}
+                      {form.formState.isSubmitting ? "Creating..." : "Create Announcement"}
                     </Button>
                   </DialogFooter>
                 </form>
@@ -204,40 +174,46 @@ const TournamentAnnouncements = ({ tournamentId, isOrganizer }: TournamentAnnoun
         )}
       </div>
       
-      {announcements.length === 0 ? (
-        <div className="rounded-lg border border-dashed p-8 text-center">
-          <Megaphone className="mx-auto h-10 w-10 text-muted-foreground" />
-          <h3 className="mt-4 text-lg font-medium">No announcements yet</h3>
-          <p className="mt-2 text-sm text-muted-foreground">
-            {isOrganizer 
-              ? "Create your first announcement to communicate with participants." 
-              : "There are no announcements for this tournament yet."}
-          </p>
-          {isOrganizer && (
-            <Button className="mt-4" onClick={() => setOpen(true)}>
-              Create Announcement
-            </Button>
-          )}
+      {loading ? (
+        <div className="space-y-4">
+          {[1, 2, 3].map((i) => (
+            <Card key={i}>
+              <CardHeader>
+                <CardTitle><Skeleton className="h-5 w-40" /></CardTitle>
+                <CardDescription><Skeleton className="h-4 w-32" /></CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-20 w-full" />
+              </CardContent>
+              <CardFooter>
+                <Skeleton className="h-4 w-24" />
+              </CardFooter>
+            </Card>
+          ))}
         </div>
-      ) : (
+      ) : announcements.length > 0 ? (
         <div className="space-y-4">
           {announcements.map((announcement) => (
             <Card key={announcement.id}>
               <CardHeader>
-                <CardTitle className="text-xl">{announcement.title}</CardTitle>
+                <CardTitle>{announcement.title}</CardTitle>
+                <CardDescription>
+                  By {announcement.sender_name} - {format(new Date(announcement.created_at), "PPP 'at' p")}
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <p className="whitespace-pre-wrap">{announcement.message}</p>
               </CardContent>
-              <CardFooter className="text-sm text-muted-foreground">
-                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                  <span>Posted by {announcement.sender_name}</span>
-                  <span>•</span>
-                  <span>{format(new Date(announcement.created_at), "PPP 'at' p")}</span>
-                </div>
-              </CardFooter>
             </Card>
           ))}
+        </div>
+      ) : (
+        <div className="rounded-md border border-dashed p-8 text-center">
+          <MessageSquare className="mx-auto h-10 w-10 text-muted-foreground" />
+          <h3 className="mt-4 text-lg font-medium">No announcements yet</h3>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Stay tuned for updates from the tournament organizer!
+          </p>
         </div>
       )}
     </div>

@@ -42,16 +42,16 @@ const MessagesPage = () => {
       try {
         setLoading(true);
         
-        // Fetch received messages using RPC
+        // Fetch received messages using RPC with updated parameter name
         const { data: received, error: receivedError } = await supabase.rpc('get_received_messages', {
-          user_id: user.id
+          input_user_id: user.id
         });
 
         if (receivedError) throw receivedError;
 
-        // Fetch sent messages using RPC
+        // Fetch sent messages using RPC with updated parameter name
         const { data: sent, error: sentError } = await supabase.rpc('get_sent_messages', {
-          user_id: user.id
+          input_user_id: user.id
         });
 
         if (sentError) throw sentError;
