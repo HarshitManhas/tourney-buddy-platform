@@ -142,3 +142,48 @@ BEGIN
   RETURN new_announcement_id;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Add participants_registered column to tournaments if not exists
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'tournaments'
+    AND column_name = 'participants_registered'
+  ) THEN
+    ALTER TABLE tournaments ADD COLUMN participants_registered integer DEFAULT 0;
+  END IF;
+END
+$$;
+
+-- Ensure we have a profile-images bucket in storage
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('profile-images', 'Profile Images', true)
+ON CONFLICT (id) DO NOTHING;
+
+-- Create policy to allow public read access to profile images
+INSERT INTO storage.policies (name, definition, owner, bucket_id, policy)
+SELECT 
+  'Public Read Access for Profile Images',
+  'storage.buckets.name = ''profile-images''',
+  (SELECT uuid FROM auth.users LIMIT 1),
+  'profile-images',
+  '(bucket_id = ''profile-images''::text)'
+WHERE NOT EXISTS (
+  SELECT 1 FROM storage.policies 
+  WHERE name = 'Public Read Access for Profile Images' AND bucket_id = 'profile-images'
+);
+
+-- Create policy to allow authenticated users to upload profile images
+INSERT INTO storage.policies (name, definition, owner, bucket_id, policy)
+SELECT 
+  'Authenticated Users Can Upload Profile Images',
+  'storage.buckets.name = ''profile-images'' AND auth.role() = ''authenticated''',
+  (SELECT uuid FROM auth.users LIMIT 1),
+  'profile-images',
+  '(bucket_id = ''profile-images''::text AND auth.role() = ''authenticated''::text)'
+WHERE NOT EXISTS (
+  SELECT 1 FROM storage.policies 
+  WHERE name = 'Authenticated Users Can Upload Profile Images' AND bucket_id = 'profile-images'
+);
+

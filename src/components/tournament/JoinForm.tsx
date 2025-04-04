@@ -150,7 +150,13 @@ const JoinForm = ({ tournament }: JoinFormProps) => {
           
         if (uploadError) throw uploadError;
         
-        profileImageUrl = `${supabase.storageUrl}/object/public/profile-images/${fileName}`;
+        // Get the public URL of the uploaded image
+        const { data: { publicUrl } } = supabase
+          .storage
+          .from('profile-images')
+          .getPublicUrl(fileName);
+          
+        profileImageUrl = publicUrl;
       }
 
       // Prepare participant data
@@ -174,10 +180,11 @@ const JoinForm = ({ tournament }: JoinFormProps) => {
       // Increment teams_registered or participants_registered based on format
       const updateField = isDoubles || isTeamSport ? "teams_registered" : "participants_registered";
       
+      // Update using the increment feature
       const { error: tournamentError } = await supabase
         .from("tournaments")
         .update({ 
-          [updateField]: supabase.sql`${updateField} + 1` 
+          [updateField]: tournament[updateField] + 1 
         })
         .eq("id", tournament.id);
 
@@ -370,7 +377,7 @@ const JoinForm = ({ tournament }: JoinFormProps) => {
                   </div>
                   {selectedRoles.length === 0 && form.formState.errors.roles && (
                     <p className="text-sm font-medium text-destructive">
-                      {form.formState.errors.roles.message}
+                      {String(form.formState.errors.roles.message)}
                     </p>
                   )}
                 </div>
