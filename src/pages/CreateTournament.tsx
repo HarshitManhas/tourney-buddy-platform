@@ -3,7 +3,6 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Link, useNavigate } from "react-router-dom";
-import { ImagePlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
 import { Separator } from "@/components/ui/separator";
@@ -100,10 +99,12 @@ const CreateTournament = () => {
         }
 
         // Get entry fee safely with fallback to 0
-        const entryFee = sports[0]?.entryFee ? parseInt(sports[0].entryFee.toString()) : 0;
+        const entryFee = sports[0]?.entryFee ? 
+          typeof sports[0].entryFee === 'string' ? parseInt(sports[0].entryFee) : sports[0].entryFee :
+          0;
         
         // Get team limit, parse as number or use default of 10
-        const teamLimit = sports[0]?.maxTeams ? parseInt(sports[0].maxTeams.toString()) : 10;
+        const teamLimit = sports[0]?.maxTeams ? Number(sports[0].maxTeams) : 10;
 
         // Prepare tournament data for insertion
         const tournamentData = {

@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Plus, X } from "lucide-react";
 import { v4 as uuidv4 } from "uuid";
@@ -12,21 +13,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
+import { SportConfig } from "@/types/tournament";
 
-type SportConfig = {
-  id: string;
-  sport: string;
-  eventName: string;
-  format: string;
-  maxTeams: number;
-  gender: string;
-  playType?: string; // For sports like tennis, badminton, etc.
-  additionalDetails?: string; // Ensure this property is in the SportConfig type here as well
-};
-
-interface SportSettingsProps {
+type SportSettingsProps = {
   onAddSport: (sportConfig: SportConfig) => void;
-}
+};
 
 // Sports that can be played in singles, doubles, or mixed
 const racquetSports = [
@@ -72,6 +63,7 @@ const SportSettings = ({ onAddSport }: SportSettingsProps) => {
   const [gender, setGender] = useState("");
   const [playType, setPlayType] = useState("");
   const [additionalDetails, setAdditionalDetails] = useState("");
+  const [entryFee, setEntryFee] = useState(""); // Added entryFee state
   const [showForm, setShowForm] = useState(false);
 
   const handleAddSport = () => {
@@ -137,6 +129,7 @@ const SportSettings = ({ onAddSport }: SportSettingsProps) => {
       format,
       maxTeams: parseInt(maxTeams),
       gender,
+      entryFee: entryFee || "0", // Include entryFee in the sport config
       ...(racquetSports.includes(selectedSport) && { playType }),
       ...(additionalDetails && { additionalDetails }),
     };
@@ -158,6 +151,7 @@ const SportSettings = ({ onAddSport }: SportSettingsProps) => {
     setGender("");
     setPlayType("");
     setAdditionalDetails("");
+    setEntryFee(""); // Reset entryFee
     setShowForm(false);
   };
 
@@ -260,22 +254,34 @@ const SportSettings = ({ onAddSport }: SportSettingsProps) => {
               </Select>
             </div>
 
-            {racquetSports.includes(selectedSport) && (
-              <div className="space-y-2">
-                <Label htmlFor="playType">Play Type <span className="text-destructive">*</span></Label>
-                <Select value={playType} onValueChange={setPlayType}>
-                  <SelectTrigger id="playType">
-                    <SelectValue placeholder="Select play type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Singles">Singles</SelectItem>
-                    <SelectItem value="Doubles">Doubles</SelectItem>
-                    <SelectItem value="Mixed Doubles">Mixed Doubles</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
+            <div className="space-y-2">
+              <Label htmlFor="entryFee">Entry Fee</Label>
+              <Input
+                id="entryFee"
+                type="number"
+                placeholder="Entry fee amount"
+                value={entryFee}
+                onChange={(e) => setEntryFee(e.target.value)}
+                min={0}
+              />
+            </div>
           </div>
+
+          {racquetSports.includes(selectedSport) && (
+            <div className="space-y-2">
+              <Label htmlFor="playType">Play Type <span className="text-destructive">*</span></Label>
+              <Select value={playType} onValueChange={setPlayType}>
+                <SelectTrigger id="playType">
+                  <SelectValue placeholder="Select play type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Singles">Singles</SelectItem>
+                  <SelectItem value="Doubles">Doubles</SelectItem>
+                  <SelectItem value="Mixed Doubles">Mixed Doubles</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="additionalDetails">Additional Details</Label>
@@ -303,6 +309,7 @@ const SportSettings = ({ onAddSport }: SportSettingsProps) => {
                 setGender("");
                 setPlayType("");
                 setAdditionalDetails("");
+                setEntryFee("");
               }}
             >
               <Plus className="mr-2 h-4 w-4" /> Add & Continue

@@ -42,21 +42,22 @@ const MessagesPage = () => {
       try {
         setLoading(true);
         
-        // Fetch received messages directly with raw SQL query via RPC to avoid TypeScript errors
+        // Fetch received messages using RPC
         const { data: received, error: receivedError } = await supabase.rpc('get_received_messages', {
           user_id: user.id
         });
 
         if (receivedError) throw receivedError;
 
-        // Fetch sent messages with raw SQL query via RPC
+        // Fetch sent messages using RPC
         const { data: sent, error: sentError } = await supabase.rpc('get_sent_messages', {
           user_id: user.id
         });
 
         if (sentError) throw sentError;
         
-        // Process messages
+        // Process and set messages
+        // We need to properly type the response from our RPC functions
         setReceivedMessages(received || []);
         setSentMessages(sent || []);
       } catch (error) {

@@ -28,6 +28,7 @@ export type SportConfig = {
   format: string;
   maxTeams: number;
   gender: string;
+  entryFee?: string | number; // Added entryFee property
   playType?: string;
   additionalDetails?: string;
 };
