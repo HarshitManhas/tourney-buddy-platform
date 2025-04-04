@@ -10,6 +10,7 @@ import CreateTournament from "./pages/CreateTournament";
 import TournamentsPage from "./pages/TournamentsPage";
 import TournamentDetail from "./pages/TournamentDetail";
 import EditTournament from "./pages/EditTournament";
+import JoinTournament from "./pages/JoinTournament";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Profile from "./pages/Profile";
@@ -33,6 +34,7 @@ const App = () => (
             <Route path="/register" element={<Register />} />
             <Route path="/tournaments" element={<TournamentsPage />} />
             <Route path="/tournaments/:id" element={<TournamentDetail />} />
+            <Route path="/tournaments/:id/join" element={<JoinTournament />} />
             
             {/* Protected routes */}
             <Route 
