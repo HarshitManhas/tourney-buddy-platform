@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,6 +11,7 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
+import { Json } from "@/integrations/supabase/types";
 
 interface Tournament {
   id: string;
@@ -58,7 +58,9 @@ const ComposeMessage = ({ onMessageSent, preselectedTournamentId }: ComposeMessa
           
         if (error) throw error;
         
-        setTournaments(data || []);
+        // Cast the JSON data to the Tournament type
+        const typedData = (data || []) as Tournament[];
+        setTournaments(typedData);
       } catch (error) {
         console.error("Error fetching tournaments:", error);
         toast.error("Failed to load tournaments");

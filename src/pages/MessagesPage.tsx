@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,6 +9,7 @@ import ComposeMessage from "@/components/messaging/ComposeMessage";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MessageSquare, Send } from "lucide-react";
 import { toast } from "sonner";
+import { Json } from "@/integrations/supabase/types";
 
 export interface Message {
   id: string;
@@ -56,9 +56,13 @@ const MessagesPage = () => {
 
         if (sentError) throw sentError;
         
+        // Cast the JSON data to the Message type
+        const typedReceivedData = (received || []) as Message[];
+        const typedSentData = (sent || []) as Message[];
+        
         // Set messages
-        setReceivedMessages(received || []);
-        setSentMessages(sent || []);
+        setReceivedMessages(typedReceivedData);
+        setSentMessages(typedSentData);
       } catch (error) {
         console.error("Error fetching messages:", error);
         toast.error("Failed to load messages");

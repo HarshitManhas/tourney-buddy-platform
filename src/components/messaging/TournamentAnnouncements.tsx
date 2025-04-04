@@ -15,6 +15,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Json } from "@/integrations/supabase/types";
 
 interface Announcement {
   id: string;
@@ -62,7 +63,9 @@ const TournamentAnnouncements = ({ tournamentId, isOrganizer }: TournamentAnnoun
           
         if (error) throw error;
         
-        setAnnouncements(data || []);
+        // Cast the JSON data to the Announcement type
+        const typedData = (data || []) as Announcement[];
+        setAnnouncements(typedData);
       } catch (error) {
         console.error("Error fetching announcements:", error);
         toast.error("Failed to load announcements");
@@ -102,7 +105,9 @@ const TournamentAnnouncements = ({ tournamentId, isOrganizer }: TournamentAnnoun
         
       if (fetchError) throw fetchError;
       
-      setAnnouncements(data || []);
+      // Cast the JSON data to the Announcement type
+      const typedData = (data || []) as Announcement[];
+      setAnnouncements(typedData);
     } catch (error) {
       console.error("Error creating announcement:", error);
       toast.error("Failed to create announcement");
