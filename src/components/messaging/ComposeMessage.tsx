@@ -17,7 +17,7 @@ interface Tournament {
   id: string;
   tournament_name: string;
   creator_id: string;
-  creator_name?: string;
+  creator_name: string;
 }
 
 interface ComposeMessageProps {
@@ -51,7 +51,7 @@ const ComposeMessage = ({ onMessageSent, preselectedTournamentId }: ComposeMessa
       try {
         setLoading(true);
         
-        // Get tournaments and creator info via RPC
+        // Use the get_user_tournaments RPC function
         const { data, error } = await supabase.rpc('get_user_tournaments', {
           user_id: user.id
         });
@@ -104,7 +104,7 @@ const ComposeMessage = ({ onMessageSent, preselectedTournamentId }: ComposeMessa
         return;
       }
       
-      // Send message with RPC
+      // Use the send_private_message RPC function
       const { error } = await supabase.rpc('send_private_message', {
         sender_id: user.id,
         recipient_id: recipientId,

@@ -20,7 +20,7 @@ interface Announcement {
   id: string;
   tournament_id: string;
   sender_id: string;
-  sender_name?: string;
+  sender_name: string;
   title: string;
   message: string;
   created_at: string;
@@ -55,7 +55,7 @@ const TournamentAnnouncements = ({ tournamentId, isOrganizer }: TournamentAnnoun
       try {
         setLoading(true);
         
-        // Get announcements with author info via RPC
+        // Use the get_tournament_announcements RPC function
         const { data, error } = await supabase.rpc('get_tournament_announcements', {
           tournament_id: tournamentId
         });
@@ -81,7 +81,7 @@ const TournamentAnnouncements = ({ tournamentId, isOrganizer }: TournamentAnnoun
     }
     
     try {
-      // Create announcement via RPC
+      // Use the create_tournament_announcement RPC function
       const { error } = await supabase.rpc('create_tournament_announcement', {
         tournament_id: tournamentId,
         sender_id: user.id,

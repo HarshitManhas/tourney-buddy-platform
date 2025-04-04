@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -98,15 +97,17 @@ const CreateTournament = () => {
           return;
         }
 
-        // Get entry fee safely with fallback to 0
-        const entryFee = sports[0]?.entryFee ? 
-          typeof sports[0].entryFee === 'string' ? parseInt(sports[0].entryFee) : sports[0].entryFee :
+        const sportsConfig = sports.map(sport => ({
+          ...sport,
+          entryFee: sport.entryFee !== undefined ? sport.entryFee : "0"
+        }));
+
+        const entryFee = sportsConfig[0]?.entryFee ? 
+          typeof sportsConfig[0].entryFee === 'string' ? parseInt(sportsConfig[0].entryFee) : sportsConfig[0].entryFee :
           0;
         
-        // Get team limit, parse as number or use default of 10
-        const teamLimit = sports[0]?.maxTeams ? Number(sports[0].maxTeams) : 10;
+        const teamLimit = sportsConfig[0]?.maxTeams ? Number(sportsConfig[0].maxTeams) : 10;
 
-        // Prepare tournament data for insertion
         const tournamentData = {
           tournament_name: values.tournamentName,
           about: values.about,
@@ -118,12 +119,12 @@ const CreateTournament = () => {
           contact_phone: values.contactPhone,
           city: values.city,
           state: values.state,
-          sport: sports[0]?.sport || null, // Using first sport for now
-          format: sports[0]?.format || null,
+          sport: sportsConfig[0]?.sport || null,
+          format: sportsConfig[0]?.format || null,
           entry_fee: entryFee,
           team_limit: teamLimit,
-          creator_id: user.id, // Link to the creator
-          user_id: user.id, // Link to the user
+          creator_id: user.id,
+          user_id: user.id,
         };
 
         const { data, error } = await supabase

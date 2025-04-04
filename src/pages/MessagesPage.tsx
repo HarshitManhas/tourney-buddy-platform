@@ -56,8 +56,7 @@ const MessagesPage = () => {
 
         if (sentError) throw sentError;
         
-        // Process and set messages
-        // We need to properly type the response from our RPC functions
+        // Set messages
         setReceivedMessages(received || []);
         setSentMessages(sent || []);
       } catch (error) {
