@@ -55,28 +55,23 @@ const TournamentAnnouncements = ({ tournamentId, isOrganizer }: TournamentAnnoun
       try {
         setLoading(true);
         
+        // Get announcements data
         const { data, error } = await supabase
-          .from("tournament_announcements")
-          .select(`
-            id, 
-            tournament_id, 
-            sender_id, 
-            title, 
-            message, 
-            created_at
-          `)
-          .eq("tournament_id", tournamentId)
-          .order("created_at", { ascending: false });
+          .from('tournament_announcements')
+          .select('*')
+          .eq('tournament_id', tournamentId)
+          .order('created_at', { ascending: false });
           
         if (error) throw error;
         
-        if (data.length > 0) {
-          const senderIds = new Set(data.map(a => a.sender_id));
+        if (data && data.length > 0) {
+          // Get sender profiles
+          const senderIds = Array.from(new Set(data.map(a => a.sender_id)));
           
           const { data: profiles, error: profilesError } = await supabase
-            .from("profiles")
-            .select("id, username")
-            .in("id", Array.from(senderIds));
+            .from('profiles')
+            .select('id, username')
+            .in('id', senderIds);
             
           if (profilesError) throw profilesError;
           
@@ -111,7 +106,7 @@ const TournamentAnnouncements = ({ tournamentId, isOrganizer }: TournamentAnnoun
     
     try {
       const { error } = await supabase
-        .from("tournament_announcements")
+        .from('tournament_announcements')
         .insert({
           tournament_id: tournamentId,
           sender_id: user.id,
@@ -127,14 +122,34 @@ const TournamentAnnouncements = ({ tournamentId, isOrganizer }: TournamentAnnoun
       
       // Refresh announcements
       const { data, error: fetchError } = await supabase
-        .from("tournament_announcements")
-        .select("*")
-        .eq("tournament_id", tournamentId)
-        .order("created_at", { ascending: false });
+        .from('tournament_announcements')
+        .select('*')
+        .eq('tournament_id', tournamentId)
+        .order('created_at', { ascending: false });
         
       if (fetchError) throw fetchError;
       
-      setAnnouncements(data);
+      if (data) {
+        // Get profiles for new list
+        const senderIds = Array.from(new Set(data.map(a => a.sender_id)));
+        
+        const { data: profiles, error: profileError } = await supabase
+          .from('profiles')
+          .select('id, username')
+          .in('id', senderIds);
+          
+        if (profileError) throw profileError;
+        
+        const profileMap = new Map(profiles.map(p => [p.id, p.username]));
+        
+        // Add sender names
+        const announcementsWithNames = data.map(a => ({
+          ...a,
+          sender_name: profileMap.get(a.sender_id) || 'Unknown User'
+        }));
+        
+        setAnnouncements(announcementsWithNames);
+      }
     } catch (error) {
       console.error("Error creating announcement:", error);
       toast.error("Failed to publish announcement");

@@ -83,34 +83,36 @@ const MessageList = ({ messages, type, loading, onMessageRead }: MessageListProp
               {format(new Date(message.created_at), "PPP 'at' p")}
             </span>
             
-            {type === "received" && (
-              <div className="flex items-center">
-                {message.read ? (
-                  <span className="flex items-center text-sm text-muted-foreground">
-                    <Check size={16} className="mr-1 text-green-500" />
-                    Read
-                  </span>
-                ) : (
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    className="flex items-center gap-1"
-                    onClick={() => onMessageRead?.(message.id)}
-                  >
-                    <Eye size={16} />
-                    Mark as read
-                  </Button>
-                )}
-              </div>
-            )}
-            
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => navigate(`/tournaments/${message.tournament_id}`)}
-            >
-              View Tournament
-            </Button>
+            <div className="flex items-center gap-2">
+              {type === "received" && (
+                <div className="flex items-center">
+                  {message.read ? (
+                    <span className="flex items-center text-sm text-muted-foreground">
+                      <Check size={16} className="mr-1 text-green-500" />
+                      Read
+                    </span>
+                  ) : (
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="flex items-center gap-1"
+                      onClick={() => onMessageRead?.(message.id)}
+                    >
+                      <Eye size={16} />
+                      Mark as read
+                    </Button>
+                  )}
+                </div>
+              )}
+              
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => navigate(`/tournaments/${message.tournament_id}`)}
+              >
+                View Tournament
+              </Button>
+            </div>
           </CardFooter>
         </Card>
       ))}

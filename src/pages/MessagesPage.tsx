@@ -7,7 +7,6 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import MessageList from "@/components/messaging/MessageList";
 import ComposeMessage from "@/components/messaging/ComposeMessage";
-import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MessageSquare, Send } from "lucide-react";
 import { toast } from "sonner";
@@ -43,75 +42,73 @@ const MessagesPage = () => {
       try {
         setLoading(true);
         
-        // Fetch received messages
+        // Custom query for received messages
         const { data: received, error: receivedError } = await supabase
-          .from("private_messages")
-          .select(`
-            id, 
-            sender_id, 
-            recipient_id, 
-            tournament_id, 
-            message, 
-            created_at, 
-            read,
-            tournaments:tournament_id (
-              tournament_name
-            )
-          `)
-          .eq("recipient_id", user.id)
-          .order("created_at", { ascending: false });
+          .from('private_messages')
+          .select('*')
+          .eq('recipient_id', user.id)
+          .order('created_at', { ascending: false });
 
         if (receivedError) throw receivedError;
 
-        // Fetch sent messages
+        // Custom query for sent messages
         const { data: sent, error: sentError } = await supabase
-          .from("private_messages")
-          .select(`
-            id, 
-            sender_id, 
-            recipient_id, 
-            tournament_id, 
-            message, 
-            created_at, 
-            read,
-            tournaments:tournament_id (
-              tournament_name
-            )
-          `)
-          .eq("sender_id", user.id)
-          .order("created_at", { ascending: false });
+          .from('private_messages')
+          .select('*')
+          .eq('sender_id', user.id)
+          .order('created_at', { ascending: false });
 
         if (sentError) throw sentError;
 
+        // Get tournaments info
+        const tournamentIds = new Set<string>();
+        [...received, ...sent].forEach(msg => {
+          if (msg.tournament_id) tournamentIds.add(msg.tournament_id);
+        });
+        
+        const { data: tournaments, error: tournamentsError } = await supabase
+          .from('tournaments')
+          .select('id, tournament_name')
+          .in('id', Array.from(tournamentIds));
+        
+        if (tournamentsError) throw tournamentsError;
+        
+        const tournamentMap = new Map(tournaments.map(t => [t.id, t.tournament_name]));
+
         // Get user profiles for senders and recipients
         const userIds = new Set<string>();
-        received.forEach(msg => userIds.add(msg.sender_id));
-        sent.forEach(msg => userIds.add(msg.recipient_id));
+        received.forEach(msg => {
+          if (msg.sender_id) userIds.add(msg.sender_id);
+        });
+        sent.forEach(msg => {
+          if (msg.recipient_id) userIds.add(msg.recipient_id);
+        });
         
         const { data: profiles, error: profilesError } = await supabase
-          .from("profiles")
-          .select("id, username")
-          .in("id", Array.from(userIds));
+          .from('profiles')
+          .select('id, username')
+          .in('id', Array.from(userIds));
         
         if (profilesError) throw profilesError;
         
         const profileMap = new Map(profiles.map(p => [p.id, p.username]));
         
-        // Add user names to messages
-        const receivedWithNames = received.map(msg => ({
+        // Process and enrich received messages
+        const receivedWithDetails = received.map(msg => ({
           ...msg,
           sender_name: profileMap.get(msg.sender_id) || 'Unknown User',
-          tournament_name: msg.tournaments?.tournament_name || 'Unknown Tournament'
+          tournament_name: tournamentMap.get(msg.tournament_id) || 'Unknown Tournament'
         }));
         
-        const sentWithNames = sent.map(msg => ({
+        // Process and enrich sent messages
+        const sentWithDetails = sent.map(msg => ({
           ...msg,
           recipient_name: profileMap.get(msg.recipient_id) || 'Unknown User',
-          tournament_name: msg.tournaments?.tournament_name || 'Unknown Tournament'
+          tournament_name: tournamentMap.get(msg.tournament_id) || 'Unknown Tournament'
         }));
         
-        setReceivedMessages(receivedWithNames);
-        setSentMessages(sentWithNames);
+        setReceivedMessages(receivedWithDetails);
+        setSentMessages(sentWithDetails);
       } catch (error) {
         console.error("Error fetching messages:", error);
         toast.error("Failed to load messages");
@@ -126,10 +123,10 @@ const MessagesPage = () => {
   const markAsRead = async (messageId: string) => {
     try {
       const { error } = await supabase
-        .from("private_messages")
+        .from('private_messages')
         .update({ read: true })
-        .eq("id", messageId)
-        .eq("recipient_id", user?.id);
+        .eq('id', messageId)
+        .eq('recipient_id', user?.id);
 
       if (error) throw error;
 

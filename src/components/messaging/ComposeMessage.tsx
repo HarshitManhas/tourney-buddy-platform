@@ -17,7 +17,7 @@ type Tournament = {
   id: string;
   tournament_name: string;
   creator_id: string;
-  creator_name?: string;
+  creator_username?: string;
 };
 
 interface ComposeMessageProps {
@@ -101,7 +101,7 @@ const ComposeMessage = ({ onMessageSent, preselectedTournamentId }: ComposeMessa
           // Add creator names to tournaments
           allTournaments.forEach(t => {
             if (t.creator_id) {
-              t.creator_name = profileMap.get(t.creator_id) || 'Unknown User';
+              t.creator_username = profileMap.get(t.creator_id) || 'Unknown User';
             }
           });
         }
@@ -153,7 +153,7 @@ const ComposeMessage = ({ onMessageSent, preselectedTournamentId }: ComposeMessa
       }
       
       const { error } = await supabase
-        .from("private_messages")
+        .from('private_messages')
         .insert({
           sender_id: user.id,
           recipient_id: recipientId,
@@ -214,7 +214,7 @@ const ComposeMessage = ({ onMessageSent, preselectedTournamentId }: ComposeMessa
                       <SelectContent>
                         {tournaments.map((tournament) => (
                           <SelectItem key={tournament.id} value={tournament.id}>
-                            {tournament.tournament_name} (by {tournament.creator_name})
+                            {tournament.tournament_name} (by {tournament.creator_username})
                           </SelectItem>
                         ))}
                       </SelectContent>
