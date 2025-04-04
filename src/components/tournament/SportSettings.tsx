@@ -60,11 +60,17 @@ const SportSettings = ({ onAddSport }: SportSettingsProps) => {
   const [eventName, setEventName] = useState("");
   const [format, setFormat] = useState("");
   const [maxTeams, setMaxTeams] = useState("");
+  const [maxParticipants, setMaxParticipants] = useState("");
   const [gender, setGender] = useState("");
   const [playType, setPlayType] = useState("");
   const [additionalDetails, setAdditionalDetails] = useState("");
-  const [entryFee, setEntryFee] = useState(""); // Added entryFee state
+  const [entryFee, setEntryFee] = useState("");
   const [showForm, setShowForm] = useState(false);
+
+  const isIndividualFormat = () => {
+    if (!racquetSports.includes(selectedSport)) return false;
+    return playType === "Singles";
+  };
 
   const handleAddSport = () => {
     if (!selectedSport) {
@@ -94,7 +100,19 @@ const SportSettings = ({ onAddSport }: SportSettingsProps) => {
       return;
     }
 
-    if (!maxTeams || parseInt(maxTeams) <= 0) {
+    // For racquet sports with singles format, validate maxParticipants
+    if (isIndividualFormat()) {
+      if (!maxParticipants || parseInt(maxParticipants) <= 0) {
+        toast({
+          title: "Valid Maximum Participants Required",
+          description: "Please enter a valid number of maximum participants",
+          variant: "destructive",
+        });
+        return;
+      }
+    } 
+    // For team sports or doubles formats, validate maxTeams
+    else if (!isIndividualFormat() && (!maxTeams || parseInt(maxTeams) <= 0)) {
       toast({
         title: "Valid Maximum Teams Required",
         description: "Please enter a valid number of maximum teams",
@@ -127,9 +145,11 @@ const SportSettings = ({ onAddSport }: SportSettingsProps) => {
       sport: selectedSport,
       eventName,
       format,
-      maxTeams: parseInt(maxTeams),
       gender,
-      entryFee: entryFee || "0", // Include entryFee in the sport config
+      entryFee: entryFee || "0",
+      ...(isIndividualFormat() 
+        ? { maxParticipants: parseInt(maxParticipants) } 
+        : { maxTeams: parseInt(maxTeams) }),
       ...(racquetSports.includes(selectedSport) && { playType }),
       ...(additionalDetails && { additionalDetails }),
     };
@@ -148,10 +168,11 @@ const SportSettings = ({ onAddSport }: SportSettingsProps) => {
     setEventName("");
     setFormat("");
     setMaxTeams("");
+    setMaxParticipants("");
     setGender("");
     setPlayType("");
     setAdditionalDetails("");
-    setEntryFee(""); // Reset entryFee
+    setEntryFee("");
     setShowForm(false);
   };
 
@@ -225,20 +246,50 @@ const SportSettings = ({ onAddSport }: SportSettingsProps) => {
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="maxTeams">Maximum Teams <span className="text-destructive">*</span></Label>
-              <Input
-                id="maxTeams"
-                type="number"
-                placeholder="Enter maximum number of teams"
-                value={maxTeams}
-                onChange={(e) => setMaxTeams(e.target.value)}
-                min={1}
-              />
-            </div>
+            {racquetSports.includes(selectedSport) && (
+              <div className="space-y-2">
+                <Label htmlFor="playType">Play Type <span className="text-destructive">*</span></Label>
+                <Select value={playType} onValueChange={setPlayType}>
+                  <SelectTrigger id="playType">
+                    <SelectValue placeholder="Select play type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Singles">Singles</SelectItem>
+                    <SelectItem value="Doubles">Doubles</SelectItem>
+                    <SelectItem value="Mixed Doubles">Mixed Doubles</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
 
           <div className="grid gap-6 md:grid-cols-2">
+            {isIndividualFormat() ? (
+              <div className="space-y-2">
+                <Label htmlFor="maxParticipants">Maximum Participants <span className="text-destructive">*</span></Label>
+                <Input
+                  id="maxParticipants"
+                  type="number"
+                  placeholder="Enter maximum number of participants"
+                  value={maxParticipants}
+                  onChange={(e) => setMaxParticipants(e.target.value)}
+                  min={1}
+                />
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label htmlFor="maxTeams">Maximum Teams <span className="text-destructive">*</span></Label>
+                <Input
+                  id="maxTeams"
+                  type="number"
+                  placeholder="Enter maximum number of teams"
+                  value={maxTeams}
+                  onChange={(e) => setMaxTeams(e.target.value)}
+                  min={1}
+                />
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="gender">Gender <span className="text-destructive">*</span></Label>
               <Select value={gender} onValueChange={setGender}>
@@ -253,35 +304,19 @@ const SportSettings = ({ onAddSport }: SportSettingsProps) => {
                 </SelectContent>
               </Select>
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="entryFee">Entry Fee</Label>
-              <Input
-                id="entryFee"
-                type="number"
-                placeholder="Entry fee amount"
-                value={entryFee}
-                onChange={(e) => setEntryFee(e.target.value)}
-                min={0}
-              />
-            </div>
           </div>
 
-          {racquetSports.includes(selectedSport) && (
-            <div className="space-y-2">
-              <Label htmlFor="playType">Play Type <span className="text-destructive">*</span></Label>
-              <Select value={playType} onValueChange={setPlayType}>
-                <SelectTrigger id="playType">
-                  <SelectValue placeholder="Select play type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Singles">Singles</SelectItem>
-                  <SelectItem value="Doubles">Doubles</SelectItem>
-                  <SelectItem value="Mixed Doubles">Mixed Doubles</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          )}
+          <div className="space-y-2">
+            <Label htmlFor="entryFee">Entry Fee</Label>
+            <Input
+              id="entryFee"
+              type="number"
+              placeholder="Entry fee amount"
+              value={entryFee}
+              onChange={(e) => setEntryFee(e.target.value)}
+              min={0}
+            />
+          </div>
 
           <div className="space-y-2">
             <Label htmlFor="additionalDetails">Additional Details</Label>
@@ -306,6 +341,7 @@ const SportSettings = ({ onAddSport }: SportSettingsProps) => {
                 setEventName("");
                 setFormat("");
                 setMaxTeams("");
+                setMaxParticipants("");
                 setGender("");
                 setPlayType("");
                 setAdditionalDetails("");

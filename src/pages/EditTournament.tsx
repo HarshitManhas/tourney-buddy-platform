@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,6 +25,7 @@ const EditTournament = () => {
   const [formData, setFormData] = useState({
     tournament_name: "",
     sport: "",
+    format: "",
     location: "",
     city: "",
     state: "",
@@ -37,8 +37,14 @@ const EditTournament = () => {
     end_date: "",
     registration_due_date: "",
     team_limit: "",
-    entry_fee: ""
+    entry_fee: "",
+    play_type: ""
   });
+
+  const isIndividualFormat = () => {
+    if (!["Tennis", "Badminton", "Table Tennis"].includes(formData.sport)) return false;
+    return formData.play_type === "Singles";
+  };
 
   useEffect(() => {
     const fetchTournament = async () => {
@@ -56,7 +62,6 @@ const EditTournament = () => {
         if (data) {
           setTournament(data);
           
-          // Format dates for input fields
           const formatDate = (dateString: string | null) => {
             if (!dateString) return "";
             const date = new Date(dateString);
@@ -66,6 +71,7 @@ const EditTournament = () => {
           setFormData({
             tournament_name: data.tournament_name || "",
             sport: data.sport || "",
+            format: data.format || "",
             location: data.location || "",
             city: data.city || "",
             state: data.state || "",
@@ -77,7 +83,8 @@ const EditTournament = () => {
             end_date: formatDate(data.end_date),
             registration_due_date: formatDate(data.registration_due_date),
             team_limit: data.team_limit?.toString() || "",
-            entry_fee: data.entry_fee?.toString() || ""
+            entry_fee: data.entry_fee?.toString() || "",
+            play_type: ""
           });
         }
       } catch (error) {
@@ -95,7 +102,7 @@ const EditTournament = () => {
     fetchTournament();
   }, [id]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
@@ -108,7 +115,6 @@ const EditTournament = () => {
     
     if (!tournament || !user) return;
     
-    // Verify if user is the creator
     if (tournament.creator_id !== user.id) {
       toast({
         title: "Permission denied",
@@ -121,7 +127,6 @@ const EditTournament = () => {
     setSubmitting(true);
     
     try {
-      // Convert string values back to numbers where needed
       const updateData = {
         ...formData,
         team_limit: formData.team_limit ? parseInt(formData.team_limit) : null,
@@ -311,7 +316,9 @@ const EditTournament = () => {
               
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="team_limit">Team Limit</Label>
+                  <Label htmlFor="team_limit">
+                    {isIndividualFormat() ? "Maximum Participants" : "Maximum Teams"}
+                  </Label>
                   <Input 
                     id="team_limit"
                     name="team_limit"

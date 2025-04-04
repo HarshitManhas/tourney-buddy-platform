@@ -106,7 +106,13 @@ const CreateTournament = () => {
           typeof sportsConfig[0].entryFee === 'string' ? parseInt(sportsConfig[0].entryFee) : sportsConfig[0].entryFee :
           0;
         
-        const teamLimit = sportsConfig[0]?.maxTeams ? Number(sportsConfig[0].maxTeams) : 10;
+        const isIndividualFormat = 
+          sportsConfig[0]?.playType === "Singles" && 
+          ["Tennis", "Badminton", "Table Tennis"].includes(sportsConfig[0]?.sport || "");
+        
+        const teamLimit = isIndividualFormat 
+          ? (sportsConfig[0]?.maxParticipants ? Number(sportsConfig[0].maxParticipants) : 10)
+          : (sportsConfig[0]?.maxTeams ? Number(sportsConfig[0].maxTeams) : 10);
 
         const tournamentData = {
           tournament_name: values.tournamentName,

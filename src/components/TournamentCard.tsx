@@ -16,6 +16,7 @@ export interface TournamentCardProps {
   teamsRegistered: number;
   teamLimit: number;
   image?: string;
+  playType?: string;
 }
 
 const TournamentCard = ({
@@ -28,9 +29,19 @@ const TournamentCard = ({
   entryFee,
   teamsRegistered,
   teamLimit,
-  image
+  image,
+  playType
 }: TournamentCardProps) => {
   const registrationFull = teamsRegistered >= teamLimit;
+  
+  // Determine if this is an individual or team tournament
+  const isIndividualFormat = 
+    playType === "Singles" && 
+    ["Tennis", "Badminton", "Table Tennis"].includes(sport);
+  
+  const registrationLabel = isIndividualFormat 
+    ? `${teamsRegistered} / ${teamLimit} participants registered` 
+    : `${teamsRegistered} / ${teamLimit} teams registered`;
   
   return (
     <Card className="tournament-card overflow-hidden">
@@ -59,9 +70,7 @@ const TournamentCard = ({
         </div>
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Users size={16} />
-          <span>
-            {teamsRegistered} / {teamLimit} teams registered
-          </span>
+          <span>{registrationLabel}</span>
         </div>
         <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-muted">
           <div 

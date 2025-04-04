@@ -13,6 +13,20 @@ const SportsList = ({ sports, removeSport }: SportsListProps) => {
     return null;
   }
 
+  // Helper function to determine what capacity text to show
+  const getCapacityText = (sport: SportConfig) => {
+    const isIndividualFormat = 
+      (sport.playType === "Singles" && ["Tennis", "Badminton", "Table Tennis"].includes(sport.sport));
+    
+    if (isIndividualFormat && sport.maxParticipants) {
+      return `Max Participants: ${sport.maxParticipants}`;
+    } else if (sport.maxTeams) {
+      return `Max Teams: ${sport.maxTeams}`;
+    }
+    
+    return "";
+  };
+
   return (
     <div className="mb-6 space-y-4">
       {sports.map((sport) => (
@@ -23,7 +37,7 @@ const SportsList = ({ sports, removeSport }: SportsListProps) => {
           <div>
             <div className="font-medium">{sport.sport}</div>
             <div className="text-sm text-muted-foreground">
-              {sport.eventName} • {sport.format} • Max Teams: {sport.maxTeams} • {sport.gender}
+              {sport.eventName} • {sport.format} • {getCapacityText(sport)} • {sport.gender}
               {sport.playType && ` • ${sport.playType}`}
             </div>
           </div>

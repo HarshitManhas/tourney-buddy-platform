@@ -26,9 +26,10 @@ export type SportConfig = {
   sport: string;
   eventName: string;
   format: string;
-  maxTeams: number;
+  maxTeams?: number;
+  maxParticipants?: number;
   gender: string;
-  entryFee: string | number; // Added entryFee property
+  entryFee: string | number;
   playType?: string;
   additionalDetails?: string;
 };
