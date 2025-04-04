@@ -13,12 +13,12 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 
-type Tournament = {
+interface Tournament {
   id: string;
   tournament_name: string;
   creator_id: string;
-  creator_username?: string;
-};
+  creator_name?: string;
+}
 
 interface ComposeMessageProps {
   onMessageSent?: () => void;
@@ -51,62 +51,14 @@ const ComposeMessage = ({ onMessageSent, preselectedTournamentId }: ComposeMessa
       try {
         setLoading(true);
         
-        // Get tournaments the user has either joined or created
-        const { data: participatedTournaments, error: participationError } = await supabase
-          .from("tournament_participants")
-          .select(`
-            tournament_id,
-            tournaments:tournament_id (
-              id,
-              tournament_name,
-              creator_id
-            )
-          `)
-          .eq("user_id", user.id);
+        // Get tournaments and creator info via RPC
+        const { data, error } = await supabase.rpc('get_user_tournaments', {
+          user_id: user.id
+        });
           
-        if (participationError) throw participationError;
+        if (error) throw error;
         
-        // Get tournaments created by the user (if not already included)
-        const { data: createdTournaments, error: createdError } = await supabase
-          .from("tournaments")
-          .select("id, tournament_name, creator_id")
-          .eq("creator_id", user.id);
-          
-        if (createdError) throw createdError;
-        
-        // Combine and deduplicate tournaments
-        const participatedIds = new Set(participatedTournaments.map(p => p.tournament_id));
-        const allTournaments = [
-          ...participatedTournaments.map(p => ({
-            id: p.tournaments.id,
-            tournament_name: p.tournaments.tournament_name,
-            creator_id: p.tournaments.creator_id,
-          })),
-          ...createdTournaments.filter(t => !participatedIds.has(t.id))
-        ];
-        
-        // Get creator profiles for each tournament
-        const creatorIds = new Set(allTournaments.map(t => t.creator_id).filter(Boolean));
-        
-        if (creatorIds.size > 0) {
-          const { data: profiles, error: profilesError } = await supabase
-            .from("profiles")
-            .select("id, username")
-            .in("id", Array.from(creatorIds));
-            
-          if (profilesError) throw profilesError;
-          
-          const profileMap = new Map(profiles.map(p => [p.id, p.username]));
-          
-          // Add creator names to tournaments
-          allTournaments.forEach(t => {
-            if (t.creator_id) {
-              t.creator_username = profileMap.get(t.creator_id) || 'Unknown User';
-            }
-          });
-        }
-        
-        setTournaments(allTournaments);
+        setTournaments(data || []);
       } catch (error) {
         console.error("Error fetching tournaments:", error);
         toast.error("Failed to load tournaments");
@@ -152,14 +104,13 @@ const ComposeMessage = ({ onMessageSent, preselectedTournamentId }: ComposeMessa
         return;
       }
       
-      const { error } = await supabase
-        .from('private_messages')
-        .insert({
-          sender_id: user.id,
-          recipient_id: recipientId,
-          tournament_id: values.tournamentId,
-          message: values.message,
-        });
+      // Send message with RPC
+      const { error } = await supabase.rpc('send_private_message', {
+        sender_id: user.id,
+        recipient_id: recipientId,
+        tournament_id: values.tournamentId,
+        message_text: values.message
+      });
         
       if (error) throw error;
       
@@ -214,7 +165,7 @@ const ComposeMessage = ({ onMessageSent, preselectedTournamentId }: ComposeMessa
                       <SelectContent>
                         {tournaments.map((tournament) => (
                           <SelectItem key={tournament.id} value={tournament.id}>
-                            {tournament.tournament_name} (by {tournament.creator_username})
+                            {tournament.tournament_name} (by {tournament.creator_name})
                           </SelectItem>
                         ))}
                       </SelectContent>

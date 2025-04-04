@@ -99,6 +99,12 @@ const CreateTournament = () => {
           return;
         }
 
+        // Get entry fee safely with fallback to 0
+        const entryFee = sports[0]?.entryFee ? parseInt(sports[0].entryFee.toString()) : 0;
+        
+        // Get team limit, parse as number or use default of 10
+        const teamLimit = sports[0]?.maxTeams ? parseInt(sports[0].maxTeams.toString()) : 10;
+
         // Prepare tournament data for insertion
         const tournamentData = {
           tournament_name: values.tournamentName,
@@ -113,8 +119,8 @@ const CreateTournament = () => {
           state: values.state,
           sport: sports[0]?.sport || null, // Using first sport for now
           format: sports[0]?.format || null,
-          entry_fee: parseInt(sports[0]?.entryFee || "0"),
-          team_limit: parseInt(sports[0]?.maxTeams || "10"),
+          entry_fee: entryFee,
+          team_limit: teamLimit,
           creator_id: user.id, // Link to the creator
           user_id: user.id, // Link to the user
         };

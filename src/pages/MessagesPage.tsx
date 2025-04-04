@@ -42,73 +42,23 @@ const MessagesPage = () => {
       try {
         setLoading(true);
         
-        // Custom query for received messages
-        const { data: received, error: receivedError } = await supabase
-          .from('private_messages')
-          .select('*')
-          .eq('recipient_id', user.id)
-          .order('created_at', { ascending: false });
+        // Fetch received messages directly with raw SQL query via RPC to avoid TypeScript errors
+        const { data: received, error: receivedError } = await supabase.rpc('get_received_messages', {
+          user_id: user.id
+        });
 
         if (receivedError) throw receivedError;
 
-        // Custom query for sent messages
-        const { data: sent, error: sentError } = await supabase
-          .from('private_messages')
-          .select('*')
-          .eq('sender_id', user.id)
-          .order('created_at', { ascending: false });
+        // Fetch sent messages with raw SQL query via RPC
+        const { data: sent, error: sentError } = await supabase.rpc('get_sent_messages', {
+          user_id: user.id
+        });
 
         if (sentError) throw sentError;
-
-        // Get tournaments info
-        const tournamentIds = new Set<string>();
-        [...received, ...sent].forEach(msg => {
-          if (msg.tournament_id) tournamentIds.add(msg.tournament_id);
-        });
         
-        const { data: tournaments, error: tournamentsError } = await supabase
-          .from('tournaments')
-          .select('id, tournament_name')
-          .in('id', Array.from(tournamentIds));
-        
-        if (tournamentsError) throw tournamentsError;
-        
-        const tournamentMap = new Map(tournaments.map(t => [t.id, t.tournament_name]));
-
-        // Get user profiles for senders and recipients
-        const userIds = new Set<string>();
-        received.forEach(msg => {
-          if (msg.sender_id) userIds.add(msg.sender_id);
-        });
-        sent.forEach(msg => {
-          if (msg.recipient_id) userIds.add(msg.recipient_id);
-        });
-        
-        const { data: profiles, error: profilesError } = await supabase
-          .from('profiles')
-          .select('id, username')
-          .in('id', Array.from(userIds));
-        
-        if (profilesError) throw profilesError;
-        
-        const profileMap = new Map(profiles.map(p => [p.id, p.username]));
-        
-        // Process and enrich received messages
-        const receivedWithDetails = received.map(msg => ({
-          ...msg,
-          sender_name: profileMap.get(msg.sender_id) || 'Unknown User',
-          tournament_name: tournamentMap.get(msg.tournament_id) || 'Unknown Tournament'
-        }));
-        
-        // Process and enrich sent messages
-        const sentWithDetails = sent.map(msg => ({
-          ...msg,
-          recipient_name: profileMap.get(msg.recipient_id) || 'Unknown User',
-          tournament_name: tournamentMap.get(msg.tournament_id) || 'Unknown Tournament'
-        }));
-        
-        setReceivedMessages(receivedWithDetails);
-        setSentMessages(sentWithDetails);
+        // Process messages
+        setReceivedMessages(received || []);
+        setSentMessages(sent || []);
       } catch (error) {
         console.error("Error fetching messages:", error);
         toast.error("Failed to load messages");
@@ -122,11 +72,11 @@ const MessagesPage = () => {
 
   const markAsRead = async (messageId: string) => {
     try {
-      const { error } = await supabase
-        .from('private_messages')
-        .update({ read: true })
-        .eq('id', messageId)
-        .eq('recipient_id', user?.id);
+      // Use RPC to update message status
+      const { error } = await supabase.rpc('mark_message_as_read', {
+        message_id: messageId,
+        current_user_id: user?.id
+      });
 
       if (error) throw error;
 
