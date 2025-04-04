@@ -63,8 +63,8 @@ const TournamentAnnouncements = ({ tournamentId, isOrganizer }: TournamentAnnoun
           
         if (error) throw error;
         
-        // Cast the JSON data to the Announcement type
-        const typedData = (data || []) as Announcement[];
+        // Convert JSON data to properly typed array by using as unknown first
+        const typedData = data ? (data as unknown) as Announcement[] : [];
         setAnnouncements(typedData);
       } catch (error) {
         console.error("Error fetching announcements:", error);
@@ -105,8 +105,8 @@ const TournamentAnnouncements = ({ tournamentId, isOrganizer }: TournamentAnnoun
         
       if (fetchError) throw fetchError;
       
-      // Cast the JSON data to the Announcement type
-      const typedData = (data || []) as Announcement[];
+      // Convert JSON data to properly typed array by using as unknown first
+      const typedData = data ? (data as unknown) as Announcement[] : [];
       setAnnouncements(typedData);
     } catch (error) {
       console.error("Error creating announcement:", error);

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -58,8 +59,8 @@ const ComposeMessage = ({ onMessageSent, preselectedTournamentId }: ComposeMessa
           
         if (error) throw error;
         
-        // Cast the JSON data to the Tournament type
-        const typedData = (data || []) as Tournament[];
+        // Convert JSON data to properly typed array by using as unknown first
+        const typedData = data ? (data as unknown) as Tournament[] : [];
         setTournaments(typedData);
       } catch (error) {
         console.error("Error fetching tournaments:", error);

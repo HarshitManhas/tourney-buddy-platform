@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -56,9 +57,9 @@ const MessagesPage = () => {
 
         if (sentError) throw sentError;
         
-        // Cast the JSON data to the Message type
-        const typedReceivedData = (received || []) as Message[];
-        const typedSentData = (sent || []) as Message[];
+        // Convert JSON data to properly typed arrays by using as unknown first
+        const typedReceivedData = received ? (received as unknown) as Message[] : [];
+        const typedSentData = sent ? (sent as unknown) as Message[] : [];
         
         // Set messages
         setReceivedMessages(typedReceivedData);
