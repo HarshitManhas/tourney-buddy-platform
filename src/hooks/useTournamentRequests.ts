@@ -51,6 +51,7 @@ export const useTournamentRequests = (tournamentId: string | undefined) => {
         format: tournamentData.format || "",
         teams_registered: tournamentData.teams_registered || 0,
         team_limit: tournamentData.team_limit || 0,
+        // Fix: Use optional chaining and provide a default value of 0
         participants_registered: tournamentData.participants_registered || 0,
         entry_fee: tournamentData.entry_fee,
         creator_id: tournamentData.creator_id,
