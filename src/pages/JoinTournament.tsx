@@ -36,10 +36,29 @@ const JoinTournament = () => {
           return;
         }
 
-        // Ensure participants_registered has a default value if it's not in the database
+        // Create a Tournament object with required properties
         const tournament: Tournament = {
-          ...tournamentData,
-          participants_registered: tournamentData.participants_registered || 0
+          id: tournamentData.id,
+          tournament_name: tournamentData.tournament_name,
+          sport: tournamentData.sport || "",
+          format: tournamentData.format || "",
+          teams_registered: tournamentData.teams_registered || 0,
+          team_limit: tournamentData.team_limit || 0,
+          participants_registered: tournamentData.participants_registered || 0,
+          entry_fee: tournamentData.entry_fee,
+          creator_id: tournamentData.creator_id,
+          image_url: tournamentData.image_url,
+          start_date: tournamentData.start_date,
+          end_date: tournamentData.end_date,
+          registration_due_date: tournamentData.registration_due_date,
+          location: tournamentData.location,
+          city: tournamentData.city,
+          state: tournamentData.state,
+          about: tournamentData.about,
+          contact_name: tournamentData.contact_name,
+          contact_email: tournamentData.contact_email,
+          contact_phone: tournamentData.contact_phone,
+          additionalDetails: tournamentData.about
         };
         
         setTournament(tournament);
