@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -34,7 +33,6 @@ const Navbar = () => {
           />
         </Link>
 
-        {/* Desktop Navigation */}
         <div className="hidden items-center space-x-6 md:flex">
           <Link to="/" className="text-sm font-medium text-gray-700 hover:text-primary">
             Home
@@ -79,7 +77,7 @@ const Navbar = () => {
                     <Link to="/profile">Profile</Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link to="/my-tournaments">My Tournaments</Link>
+                    <Link to="/profile">My Tournaments</Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
@@ -101,7 +99,6 @@ const Navbar = () => {
           )}
         </div>
 
-        {/* Mobile Menu Toggle */}
         <div className="flex md:hidden">
           <Button 
             variant="ghost" 
@@ -114,7 +111,6 @@ const Navbar = () => {
         </div>
       </div>
 
-      {/* Mobile Menu */}
       {isMenuOpen && (
         <div className="container mx-auto px-4 md:hidden">
           <div className="flex flex-col space-y-4 pt-4 pb-6">
@@ -149,18 +145,6 @@ const Navbar = () => {
             <div className="flex flex-col space-y-2 pt-2">
               {user ? (
                 <>
-                  <Button asChild variant="outline" className="gap-2 w-full justify-center">
-                    <Link to="/create-tournament" onClick={() => setIsMenuOpen(false)}>
-                      <Trophy size={16} />
-                      <span>Create Tournament</span>
-                    </Link>
-                  </Button>
-                  <Button asChild variant="outline" className="gap-2 w-full justify-center">
-                    <Link to="/messages" onClick={() => setIsMenuOpen(false)}>
-                      <MessageSquare size={16} />
-                      <span>Messages</span>
-                    </Link>
-                  </Button>
                   <Button asChild variant="outline" className="gap-2 w-full justify-center">
                     <Link to="/profile" onClick={() => setIsMenuOpen(false)}>
                       <User size={16} />
