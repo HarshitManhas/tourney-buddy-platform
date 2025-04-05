@@ -65,7 +65,8 @@ export const useTournamentRequests = (tournamentId: string | undefined) => {
         contact_name: tournamentData.contact_name,
         contact_email: tournamentData.contact_email,
         contact_phone: tournamentData.contact_phone,
-        additionalDetails: tournamentData.about
+        additionalDetails: tournamentData.about,
+        user_id: tournamentData.user_id
       };
       
       setTournament(tournament);
