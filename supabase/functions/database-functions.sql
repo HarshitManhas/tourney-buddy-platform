@@ -155,3 +155,31 @@ BEGIN
   END IF;
 END
 $$;
+
+-- Function to get join requests for a tournament
+CREATE OR REPLACE FUNCTION public.get_tournament_join_requests(tournament_id UUID)
+RETURNS SETOF json AS $$
+  SELECT 
+    json_build_object(
+      'id', tjr.id,
+      'tournament_id', tjr.tournament_id,
+      'user_id', tjr.user_id,
+      'player_name', tjr.player_name,
+      'gender', tjr.gender,
+      'mobile_no', tjr.mobile_no,
+      'roles', tjr.roles,
+      'partner_name', tjr.partner_name,
+      'partner_gender', tjr.partner_gender,
+      'partner_mobile_no', tjr.partner_mobile_no,
+      'additional_info', tjr.additional_info,
+      'payment_proof_url', tjr.payment_proof_url,
+      'status', tjr.status,
+      'submitted_at', tjr.submitted_at,
+      'reviewed_at', tjr.reviewed_at,
+      'reviewer_notes', tjr.reviewer_notes
+    )
+  FROM tournament_join_requests tjr
+  WHERE tjr.tournament_id = tournament_id
+  ORDER BY tjr.submitted_at DESC;
+$$ LANGUAGE sql SECURITY DEFINER;
+

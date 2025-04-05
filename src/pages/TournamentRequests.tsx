@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import PageLayout from "@/components/PageLayout";
-import { Tournament } from "@/types/tournament";
+import { Tournament, JoinRequest } from "@/types/tournament";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -13,24 +13,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Eye, Check, X, ArrowLeft, Phone, Mail, User } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
-
-interface JoinRequest {
-  id: string;
-  player_name: string;
-  gender: string;
-  mobile_no: string;
-  roles: string[];
-  partner_name?: string;
-  partner_gender?: string;
-  partner_mobile_no?: string;
-  additional_info?: string;
-  payment_proof_url: string;
-  status: 'pending' | 'approved' | 'rejected';
-  submitted_at: string;
-  reviewed_at?: string;
-  reviewer_notes?: string;
-  user_id: string;
-}
 
 const TournamentRequests = () => {
   const { id } = useParams<{ id: string }>();
@@ -81,7 +63,7 @@ const TournamentRequests = () => {
         format: tournamentData.format || "",
         teams_registered: tournamentData.teams_registered || 0,
         team_limit: tournamentData.team_limit || 0,
-        participants_registered: 0,
+        participants_registered: tournamentData.participants_registered || 0,
         entry_fee: tournamentData.entry_fee,
         creator_id: tournamentData.creator_id,
         image_url: tournamentData.image_url,
@@ -161,7 +143,7 @@ const TournamentRequests = () => {
           
         if (participantError) throw participantError;
         
-        // Increment teams_registered count
+        // Increment teams_registered or participants_registered count
         const isDoubles = tournament.format?.includes("Doubles") || false;
         const isTeamSport = ["Cricket", "Football", "Basketball", "Volleyball", "Hockey"].includes(tournament.sport);
         const updateField = isDoubles || isTeamSport ? "teams_registered" : "participants_registered";

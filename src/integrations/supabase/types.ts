@@ -100,6 +100,71 @@ export type Database = {
           },
         ]
       }
+      tournament_join_requests: {
+        Row: {
+          additional_info: string | null
+          gender: string
+          id: string
+          mobile_no: string
+          partner_gender: string | null
+          partner_mobile_no: string | null
+          partner_name: string | null
+          payment_proof_url: string | null
+          player_name: string
+          reviewed_at: string | null
+          reviewer_notes: string | null
+          roles: string[] | null
+          status: string
+          submitted_at: string
+          tournament_id: string
+          user_id: string
+        }
+        Insert: {
+          additional_info?: string | null
+          gender: string
+          id?: string
+          mobile_no: string
+          partner_gender?: string | null
+          partner_mobile_no?: string | null
+          partner_name?: string | null
+          payment_proof_url?: string | null
+          player_name: string
+          reviewed_at?: string | null
+          reviewer_notes?: string | null
+          roles?: string[] | null
+          status?: string
+          submitted_at?: string
+          tournament_id: string
+          user_id: string
+        }
+        Update: {
+          additional_info?: string | null
+          gender?: string
+          id?: string
+          mobile_no?: string
+          partner_gender?: string | null
+          partner_mobile_no?: string | null
+          partner_name?: string | null
+          payment_proof_url?: string | null
+          player_name?: string
+          reviewed_at?: string | null
+          reviewer_notes?: string | null
+          roles?: string[] | null
+          status?: string
+          submitted_at?: string
+          tournament_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tournament_join_requests_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tournament_participants: {
         Row: {
           id: string

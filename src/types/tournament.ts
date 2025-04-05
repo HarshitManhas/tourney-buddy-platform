@@ -58,3 +58,22 @@ export type SportConfig = {
   playType?: string;
   additionalDetails?: string;
 };
+
+export interface JoinRequest {
+  id: string;
+  player_name: string;
+  gender: string;
+  mobile_no: string;
+  roles: string[];
+  partner_name?: string;
+  partner_gender?: string;
+  partner_mobile_no?: string;
+  additional_info?: string;
+  payment_proof_url: string;
+  status: 'pending' | 'approved' | 'rejected';
+  submitted_at: string;
+  reviewed_at?: string;
+  reviewer_notes?: string;
+  user_id: string;
+  tournament_id: string;
+}
