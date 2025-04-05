@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -52,8 +51,7 @@ const Profile = () => {
         const { data: participantsData, error: participantsError } = await supabase
           .from('tournament_participants')
           .select('tournament_id')
-          .eq('user_id', user.id)
-          .eq('role', 'participant');
+          .eq('user_id', user.id);
 
         if (participantsError) throw participantsError;
 
