@@ -1,4 +1,3 @@
-
 import { z } from "zod";
 
 export const tournamentFormSchema = z.object({
@@ -44,6 +43,7 @@ export interface Tournament {
   contact_name?: string;
   contact_email?: string;
   contact_phone?: string;
+  user_id?: string;
 }
 
 export type SportConfig = {
