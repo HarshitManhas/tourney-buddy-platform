@@ -85,6 +85,4 @@ export function Stepper({ steps, currentStep, onChange, className }: StepperProp
   );
 }
 
-export const Step: React.FC<StepProps> = ({ children }) => {
-  return <>{children}</>;
-};
+// Remove the Step component since it's not used and is causing errors
