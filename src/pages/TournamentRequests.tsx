@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -39,7 +38,6 @@ const TournamentRequests = () => {
     try {
       setLoading(true);
       
-      // Fetch tournament details
       const { data: tournamentData, error: tournamentError } = await supabase
         .from("tournaments")
         .select("*")
@@ -48,14 +46,12 @@ const TournamentRequests = () => {
 
       if (tournamentError) throw tournamentError;
       
-      // Check if user is tournament creator
       if (tournamentData.creator_id !== user.id) {
         toast.error("You do not have permission to view this page");
         navigate(`/tournaments/${id}`);
         return;
       }
       
-      // Create a Tournament object
       const tournament: Tournament = {
         id: tournamentData.id,
         tournament_name: tournamentData.tournament_name,
@@ -82,7 +78,6 @@ const TournamentRequests = () => {
       
       setTournament(tournament);
       
-      // Fetch join requests
       const { data: requestsData, error: requestsError } = await supabase
         .from("tournament_join_requests")
         .select("*")
@@ -118,7 +113,6 @@ const TournamentRequests = () => {
     try {
       setProcessingLoading(true);
       
-      // Update request status
       const { error: updateError } = await supabase
         .from("tournament_join_requests")
         .update({
@@ -130,7 +124,6 @@ const TournamentRequests = () => {
         
       if (updateError) throw updateError;
       
-      // If approved, add to tournament_participants
       if (action === 'approve') {
         const { error: participantError } = await supabase
           .from("tournament_participants")
@@ -143,7 +136,6 @@ const TournamentRequests = () => {
           
         if (participantError) throw participantError;
         
-        // Increment teams_registered or participants_registered count
         const isDoubles = tournament.format?.includes("Doubles") || false;
         const isTeamSport = ["Cricket", "Football", "Basketball", "Volleyball", "Hockey"].includes(tournament.sport);
         const updateField = isDoubles || isTeamSport ? "teams_registered" : "participants_registered";
@@ -161,7 +153,6 @@ const TournamentRequests = () => {
       toast.success(`Request ${action === 'approve' ? 'approved' : 'rejected'} successfully`);
       setActionDialogOpen(false);
       
-      // Refresh data
       fetchTournamentAndRequests();
     } catch (error) {
       console.error(`Error ${action}ing request:`, error);
@@ -394,7 +385,6 @@ const TournamentRequests = () => {
         </Tabs>
       </div>
       
-      {/* View Request Dialog */}
       <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>
@@ -534,7 +524,6 @@ const TournamentRequests = () => {
         </DialogContent>
       </Dialog>
       
-      {/* Action Dialog */}
       <Dialog open={actionDialogOpen} onOpenChange={setActionDialogOpen}>
         <DialogContent>
           <DialogHeader>

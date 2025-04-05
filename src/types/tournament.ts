@@ -1,5 +1,4 @@
 
-
 import { z } from "zod";
 
 export const tournamentFormSchema = z.object({
@@ -78,4 +77,3 @@ export interface JoinRequest {
   user_id: string;
   tournament_id: string;
 }
-
