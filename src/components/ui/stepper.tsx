@@ -1,4 +1,5 @@
 
+
 import React from "react";
 import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -86,3 +87,4 @@ export function Stepper({ steps, currentStep, onChange, className }: StepperProp
 }
 
 // Remove the Step component since it's not used and is causing errors
+
