@@ -44,8 +44,7 @@ const JoinTournament = () => {
           format: tournamentData.format || "",
           teams_registered: tournamentData.teams_registered || 0,
           team_limit: tournamentData.team_limit || 0,
-          // Add a default value for participants_registered since it might not exist in the database response
-          participants_registered: tournamentData.participants_registered || 0,
+          participants_registered: 0, // Set a default value directly instead of accessing from tournamentData
           entry_fee: tournamentData.entry_fee,
           creator_id: tournamentData.creator_id,
           image_url: tournamentData.image_url,
