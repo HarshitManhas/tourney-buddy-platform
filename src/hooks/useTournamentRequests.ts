@@ -44,6 +44,8 @@ export const useTournamentRequests = (tournamentId: string | undefined) => {
         return;
       }
       
+      // Create the Tournament object with a default value for participants_registered
+      // since it doesn't exist in the database response
       const tournament: Tournament = {
         id: tournamentData.id,
         tournament_name: tournamentData.tournament_name,
@@ -51,8 +53,7 @@ export const useTournamentRequests = (tournamentId: string | undefined) => {
         format: tournamentData.format || "",
         teams_registered: tournamentData.teams_registered || 0,
         team_limit: tournamentData.team_limit || 0,
-        // Fix: Use optional chaining and provide a default value of 0
-        participants_registered: tournamentData.participants_registered || 0,
+        participants_registered: 0, // Set a default value directly
         entry_fee: tournamentData.entry_fee,
         creator_id: tournamentData.creator_id,
         image_url: tournamentData.image_url,
