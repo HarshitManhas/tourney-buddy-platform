@@ -122,7 +122,7 @@ const TournamentRequests = () => {
       const { error: updateError } = await supabase
         .from("tournament_join_requests")
         .update({
-          status: action,
+          status: action === 'approve' ? 'approved' : 'rejected',
           reviewed_at: new Date().toISOString(),
           reviewer_notes: reviewerNotes
         })
