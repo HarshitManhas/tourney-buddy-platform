@@ -11,6 +11,7 @@ import TournamentsPage from "./pages/TournamentsPage";
 import TournamentDetail from "./pages/TournamentDetail";
 import EditTournament from "./pages/EditTournament";
 import JoinTournament from "./pages/JoinTournament";
+import TournamentRequests from "./pages/TournamentRequests";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Profile from "./pages/Profile";
@@ -42,6 +43,14 @@ const App = () => (
               element={
                 <AuthGuard>
                   <CreateTournament />
+                </AuthGuard>
+              } 
+            />
+            <Route 
+              path="/tournaments/:id/requests" 
+              element={
+                <AuthGuard>
+                  <TournamentRequests />
                 </AuthGuard>
               } 
             />
