@@ -21,6 +21,31 @@ export const tournamentFormSchema = z.object({
 
 export type TournamentFormValues = z.infer<typeof tournamentFormSchema>;
 
+// Define the Tournament interface to match what's expected
+export interface Tournament {
+  id: string;
+  tournament_name: string;
+  sport: string;
+  format: string;
+  teams_registered: number;
+  team_limit: number;
+  participants_registered: number;
+  entry_fee?: number | null;
+  additionalDetails?: string;
+  creator_id?: string;
+  image_url?: string;
+  start_date?: string;
+  end_date?: string;
+  registration_due_date?: string;
+  location?: string;
+  city?: string;
+  state?: string;
+  about?: string;
+  contact_name?: string;
+  contact_email?: string;
+  contact_phone?: string;
+}
+
 export type SportConfig = {
   id: string;
   sport: string;

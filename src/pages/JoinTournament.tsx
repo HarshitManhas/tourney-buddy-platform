@@ -6,12 +6,13 @@ import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import JoinForm from "@/components/tournament/JoinForm";
 import PageLayout from "@/components/PageLayout";
+import { Tournament } from "@/types/tournament";
 
 const JoinTournament = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [tournament, setTournament] = useState<any>(null);
+  const [tournament, setTournament] = useState<Tournament | null>(null);
   const [loading, setLoading] = useState(true);
   const [alreadyJoined, setAlreadyJoined] = useState(false);
 
@@ -35,7 +36,13 @@ const JoinTournament = () => {
           return;
         }
 
-        setTournament(tournamentData);
+        // Ensure participants_registered has a default value if it's not in the database
+        const tournament: Tournament = {
+          ...tournamentData,
+          participants_registered: tournamentData.participants_registered || 0
+        };
+        
+        setTournament(tournament);
         
         if (user) {
           // Check if user already joined this tournament
