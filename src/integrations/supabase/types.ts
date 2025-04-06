@@ -274,6 +274,12 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_storage_policy: {
+        Args: {
+          bucket_name: string
+        }
+        Returns: undefined
+      }
       create_tournament_announcement: {
         Args: {
           tournament_id: string
