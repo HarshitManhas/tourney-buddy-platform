@@ -53,15 +53,18 @@ const TournamentPaymentForm = ({
 
         console.log("Attempting to fetch QR code from storage for creator:", tournament.creator_id);
 
-        // Check if bucket exists by trying to list files
-        const { data: bucketCheck, error: bucketError } = await supabase.storage
-          .from('payment-proofs')
-          .list('');
-
-        if (bucketError) {
-          console.error("Error checking bucket:", bucketError);
-          setLoading(false);
-          return;
+        // Ensure bucket exists by creating it if needed
+        try {
+          const { error: createError } = await supabase.storage.createBucket('payment-proofs', {
+            public: true
+          });
+          
+          if (createError && !createError.message.includes("already exists")) {
+            console.error("Error ensuring bucket exists:", createError);
+          }
+        } catch (err) {
+          // Ignore errors here, just log them
+          console.log("Bucket likely exists, continuing:", err);
         }
 
         // Try to fetch QR code from storage

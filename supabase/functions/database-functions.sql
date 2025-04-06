@@ -1,4 +1,3 @@
-
 -- Function to get received messages with sender and tournament information
 CREATE OR REPLACE FUNCTION public.get_received_messages(user_id UUID)
 RETURNS SETOF json AS $$
@@ -183,3 +182,67 @@ RETURNS SETOF json AS $$
   ORDER BY tjr.submitted_at DESC;
 $$ LANGUAGE sql SECURITY DEFINER;
 
+-- Create a function to handle creating storage bucket policies
+CREATE OR REPLACE FUNCTION public.create_storage_policy(bucket_name text)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  -- Create policy to allow users to read from the bucket
+  BEGIN
+    INSERT INTO storage.policies (name, bucket_id, operation, definition) 
+    VALUES (
+      bucket_name || '_read_policy',
+      bucket_name,
+      'SELECT',
+      '(bucket_id = ''' || bucket_name || '''::text)'
+    );
+  EXCEPTION 
+    WHEN unique_violation THEN
+      NULL; -- Policy already exists, ignore
+  END;
+  
+  -- Create policy to allow authenticated users to insert
+  BEGIN
+    INSERT INTO storage.policies (name, bucket_id, operation, definition) 
+    VALUES (
+      bucket_name || '_insert_policy',
+      bucket_name,
+      'INSERT',
+      '(bucket_id = ''' || bucket_name || '''::text AND auth.role() = ''authenticated'')'
+    );
+  EXCEPTION 
+    WHEN unique_violation THEN
+      NULL; -- Policy already exists, ignore
+  END;
+  
+  -- Create policy to allow authenticated users to update their own files
+  BEGIN
+    INSERT INTO storage.policies (name, bucket_id, operation, definition) 
+    VALUES (
+      bucket_name || '_update_policy',
+      bucket_name,
+      'UPDATE',
+      '(bucket_id = ''' || bucket_name || '''::text AND auth.role() = ''authenticated'' AND (storage.foldername(name))[1] = auth.uid()::text)'
+    );
+  EXCEPTION 
+    WHEN unique_violation THEN
+      NULL; -- Policy already exists, ignore
+  END;
+  
+  -- Create policy to allow authenticated users to delete their own files
+  BEGIN
+    INSERT INTO storage.policies (name, bucket_id, operation, definition) 
+    VALUES (
+      bucket_name || '_delete_policy',
+      bucket_name,
+      'DELETE',
+      '(bucket_id = ''' || bucket_name || '''::text AND auth.role() = ''authenticated'' AND (storage.foldername(name))[1] = auth.uid()::text)'
+    );
+  EXCEPTION 
+    WHEN unique_violation THEN
+      NULL; -- Policy already exists, ignore
+  END;
+END;
+$$;

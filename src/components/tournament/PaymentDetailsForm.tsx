@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, IndianRupee, QrCode } from "lucide-react";
@@ -56,38 +55,35 @@ const PaymentDetailsForm = ({
     try {
       // First check if user is logged in
       if (!user) {
+        toast({
+          title: "Authentication Error",
+          description: "You must be logged in to upload QR codes",
+          variant: "destructive",
+        });
         return false;
       }
 
-      // First try to list files to see if the bucket exists and is accessible
-      const { data: listData, error: listError } = await supabase.storage
-        .from('payment-proofs')
-        .list('');
-      
-      // If we can list files, the bucket exists and is accessible
-      if (!listError) {
-        console.log("Bucket exists and is accessible:", listData);
-        return true;
-      }
-      
-      console.log("Trying to create bucket since listing failed:", listError.message);
-      
-      // Try to create the bucket if listing failed
-      const { data, error } = await supabase.storage.createBucket('payment-proofs', {
+      // Create the bucket if it doesn't exist (this will fail safely if it already exists)
+      const { error: createError } = await supabase.storage.createBucket('payment-proofs', {
         public: true
       });
       
-      if (error) {
-        if (error.message.includes("already exists")) {
-          console.log("Bucket already exists but we couldn't list files. This likely means RLS policies need to be adjusted.");
-          return true; // Return true because the bucket exists, even if we can't list files
-        }
-        
-        console.error("Error creating bucket:", error);
-        return false;
+      if (createError && !createError.message.includes("already exists")) {
+        console.error("Error creating bucket:", createError);
+        throw new Error(createError.message);
       }
       
-      console.log("Bucket created successfully:", data);
+      // Create public RLS policy for bucket (will fail if already exists, which is fine)
+      try {
+        // This might fail if the policy already exists, but we can ignore that error
+        await supabase.rpc('create_storage_policy', {
+          bucket_name: 'payment-proofs'
+        });
+      } catch (policyError) {
+        console.log("Policy might already exist, continuing:", policyError);
+      }
+      
+      console.log("Storage bucket ready");
       return true;
     } catch (error) {
       console.error("Unexpected error in ensureStorageBucket:", error);
@@ -113,7 +109,7 @@ const PaymentDetailsForm = ({
       const previewUrl = URL.createObjectURL(file);
       setQrPreviewUrls(prev => ({...prev, [sportId]: previewUrl}));
 
-      // Ensure storage bucket exists
+      // Ensure storage bucket exists with proper permissions
       const bucketReady = await ensureStorageBucket();
       if (!bucketReady) {
         throw new Error("Failed to initialize storage. Please try again or contact support.");
