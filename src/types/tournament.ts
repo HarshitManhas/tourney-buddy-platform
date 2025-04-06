@@ -58,6 +58,7 @@ export type SportConfig = {
   entryFee: string | number;
   playType?: string;
   additionalDetails?: string;
+  qrCodeUrl?: string; // Add this field to fix the type error
 };
 
 export interface JoinRequest {
