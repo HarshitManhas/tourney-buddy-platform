@@ -1,3 +1,4 @@
+
 -- Function to get received messages with sender and tournament information
 CREATE OR REPLACE FUNCTION public.get_received_messages(user_id UUID)
 RETURNS SETOF json AS $$
