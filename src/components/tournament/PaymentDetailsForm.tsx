@@ -7,6 +7,9 @@ import { SportConfig } from "@/types/tournament";
 import { useState } from "react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { v4 as uuidv4 } from "uuid";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface PaymentDetailsFormProps {
   sports: SportConfig[];
@@ -21,7 +24,10 @@ const PaymentDetailsForm = ({
   setStep, 
   onSubmit 
 }: PaymentDetailsFormProps) => {
+  const { user } = useAuth();
   const [feesEnabled, setFeesEnabled] = useState<Record<string, boolean>>({});
+  const [uploading, setUploading] = useState<Record<string, boolean>>({});
+  const [qrPreviewUrls, setQrPreviewUrls] = useState<Record<string, string>>({});
 
   const toggleFees = (sportId: string, enabled: boolean) => {
     setFeesEnabled(prev => ({
@@ -31,7 +37,73 @@ const PaymentDetailsForm = ({
 
     if (!enabled) {
       // Reset fee data when disabled
-      updateSport(sportId, { additionalDetails: '' });
+      updateSport(sportId, { 
+        additionalDetails: '',
+        qrCodeUrl: undefined
+      });
+      // Reset preview
+      setQrPreviewUrls(prev => {
+        const updated = {...prev};
+        delete updated[sportId];
+        return updated;
+      });
+    }
+  };
+
+  const handleQrCodeUpload = async (file: File, sportId: string) => {
+    if (!user) {
+      toast({
+        title: "Authentication Error",
+        description: "You must be logged in to upload QR codes",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setUploading(prev => ({...prev, [sportId]: true}));
+      
+      // Create preview URL for immediate feedback
+      const previewUrl = URL.createObjectURL(file);
+      setQrPreviewUrls(prev => ({...prev, [sportId]: previewUrl}));
+
+      // Upload file to Supabase storage
+      const fileExt = file.name.split('.').pop() || 'png';
+      const filePath = `tournaments/qrcodes/${uuidv4()}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('payment-proofs')
+        .upload(filePath, file);
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      // Get the public URL
+      const { data: publicUrlData } = supabase.storage
+        .from('payment-proofs')
+        .getPublicUrl(filePath);
+
+      if (publicUrlData) {
+        // Update the sport config with the QR code URL
+        updateSport(sportId, { 
+          qrCodeUrl: publicUrlData.publicUrl 
+        });
+        
+        toast({
+          title: "QR Code uploaded",
+          description: `QR code uploaded successfully`
+        });
+      }
+    } catch (error: any) {
+      console.error("QR code upload error:", error);
+      toast({
+        title: "Upload Failed",
+        description: error.message || "Failed to upload QR code",
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(prev => ({...prev, [sportId]: false}));
     }
   };
 
@@ -72,7 +144,10 @@ const PaymentDetailsForm = ({
                       className="mb-2 pl-9"
                       onChange={(e) => {
                         const fee = parseInt(e.target.value);
-                        updateSport(sport.id, { additionalDetails: `Fee: ${fee} INR` });
+                        updateSport(sport.id, { 
+                          entryFee: fee,
+                          additionalDetails: `Fee: ${fee} INR` 
+                        });
                       }}
                     />
                   </div>
@@ -85,26 +160,42 @@ const PaymentDetailsForm = ({
                   <label className="mb-2 block text-sm font-medium">
                     UPI QR Code <span className="text-destructive">*</span>
                   </label>
-                  <div className="flex h-[150px] cursor-pointer flex-col items-center justify-center rounded-md border border-dashed bg-muted/50 p-4 transition-colors hover:bg-muted">
-                    <div className="flex flex-col items-center justify-center space-y-2 text-center">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                        <QrCode className="h-5 w-5 text-primary" />
+                  <div className="flex h-[150px] cursor-pointer flex-col items-center justify-center rounded-md border border-dashed bg-muted/50 p-4 transition-colors hover:bg-muted relative">
+                    {qrPreviewUrls[sport.id] ? (
+                      <div className="relative h-full w-full">
+                        <img 
+                          src={qrPreviewUrls[sport.id]} 
+                          alt="QR Code Preview" 
+                          className="h-full w-full object-contain"
+                        />
+                        {uploading[sport.id] && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-md">
+                            <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-white"></div>
+                          </div>
+                        )}
                       </div>
-                      <span className="text-sm font-medium">Upload QR Code</span>
-                      <span className="text-xs text-muted-foreground">
-                        Upload UPI QR code for payments
-                      </span>
-                    </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center space-y-2 text-center">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                          <QrCode className="h-5 w-5 text-primary" />
+                        </div>
+                        <span className="text-sm font-medium">Upload QR Code</span>
+                        <span className="text-xs text-muted-foreground">
+                          Upload UPI QR code for payments
+                        </span>
+                      </div>
+                    )}
                     <Input
+                      id={`qr-upload-${sport.id}`}
                       type="file"
+                      accept="image/*"
                       className="absolute h-full w-full cursor-pointer opacity-0"
-                      onChange={() => {
-                        // Normally would handle file upload here
-                        toast({
-                          title: "QR Code uploaded",
-                          description: `QR code for ${sport.sport} uploaded successfully`
-                        });
+                      onChange={(e) => {
+                        if (e.target.files && e.target.files[0]) {
+                          handleQrCodeUpload(e.target.files[0], sport.id);
+                        }
                       }}
+                      disabled={uploading[sport.id]}
                     />
                   </div>
                 </div>

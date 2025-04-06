@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -17,6 +18,7 @@ import SportsList from "@/components/tournament/SportsList";
 import PaymentDetailsForm from "@/components/tournament/PaymentDetailsForm";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { v4 as uuidv4 } from "uuid";
 
 const CreateTournament = () => {
   const navigate = useNavigate();
@@ -27,6 +29,7 @@ const CreateTournament = () => {
   const [tournamentBanner, setTournamentBanner] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [bannerPreview, setBannerPreview] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const form = useForm<TournamentFormValues>({
     resolver: zodResolver(tournamentFormSchema),
@@ -88,6 +91,8 @@ const CreateTournament = () => {
       window.scrollTo({ top: 0, behavior: "smooth" });
     } else {
       try {
+        setIsSubmitting(true);
+        
         if (!user) {
           toast({
             title: "Authentication Error",
@@ -97,23 +102,66 @@ const CreateTournament = () => {
           return;
         }
 
-        const sportsConfig = sports.map(sport => ({
-          ...sport,
-          entryFee: sport.entryFee !== undefined ? sport.entryFee : "0"
-        }));
-
-        const entryFee = sportsConfig[0]?.entryFee ? 
-          typeof sportsConfig[0].entryFee === 'string' ? parseInt(sportsConfig[0].entryFee) : sportsConfig[0].entryFee :
+        // Get the first sport config
+        const sportConfig = sports[0];
+        
+        // Handle entry fee information
+        const entryFee = sportConfig?.entryFee ? 
+          typeof sportConfig.entryFee === 'string' ? parseInt(sportConfig.entryFee) : sportConfig.entryFee :
           0;
         
+        // Determine if this is an individual format
         const isIndividualFormat = 
-          sportsConfig[0]?.playType === "Singles" && 
-          ["Tennis", "Badminton", "Table Tennis"].includes(sportsConfig[0]?.sport || "");
+          sportConfig?.playType === "Singles" && 
+          ["Tennis", "Badminton", "Table Tennis"].includes(sportConfig?.sport || "");
         
+        // Set team limits based on format
         const teamLimit = isIndividualFormat 
-          ? (sportsConfig[0]?.maxParticipants ? Number(sportsConfig[0].maxParticipants) : 10)
-          : (sportsConfig[0]?.maxTeams ? Number(sportsConfig[0].maxTeams) : 10);
+          ? (sportConfig?.maxParticipants ? Number(sportConfig.maxParticipants) : 10)
+          : (sportConfig?.maxTeams ? Number(sportConfig.maxTeams) : 10);
 
+        // Get QR code URL if available
+        const qrCodeUrl = sportConfig?.qrCodeUrl || null;
+
+        // Upload logo and banner if provided
+        let logoUrl = null;
+        let bannerUrl = null;
+
+        if (tournamentLogo) {
+          const fileExt = tournamentLogo.name.split('.').pop();
+          const filePath = `tournaments/logos/${uuidv4()}.${fileExt}`;
+          
+          const { error: logoError } = await supabase.storage
+            .from('payment-proofs')
+            .upload(filePath, tournamentLogo);
+            
+          if (logoError) throw logoError;
+          
+          const { data: logoData } = supabase.storage
+            .from('payment-proofs')
+            .getPublicUrl(filePath);
+            
+          logoUrl = logoData.publicUrl;
+        }
+        
+        if (tournamentBanner) {
+          const fileExt = tournamentBanner.name.split('.').pop();
+          const filePath = `tournaments/banners/${uuidv4()}.${fileExt}`;
+          
+          const { error: bannerError } = await supabase.storage
+            .from('payment-proofs')
+            .upload(filePath, tournamentBanner);
+            
+          if (bannerError) throw bannerError;
+          
+          const { data: bannerData } = supabase.storage
+            .from('payment-proofs')
+            .getPublicUrl(filePath);
+            
+          bannerUrl = bannerData.publicUrl;
+        }
+
+        // Create tournament data with all necessary fields
         const tournamentData = {
           tournament_name: values.tournamentName,
           about: values.about,
@@ -125,12 +173,15 @@ const CreateTournament = () => {
           contact_phone: values.contactPhone,
           city: values.city,
           state: values.state,
-          sport: sportsConfig[0]?.sport || null,
-          format: sportsConfig[0]?.format || null,
+          sport: sportConfig?.sport || null,
+          format: sportConfig?.format || null,
           entry_fee: entryFee,
           team_limit: teamLimit,
           creator_id: user.id,
           user_id: user.id,
+          image_url: qrCodeUrl, // Use QR code URL for payment
+          logo_url: logoUrl,
+          banner_url: bannerUrl
         };
 
         const { data, error } = await supabase
@@ -156,6 +207,8 @@ const CreateTournament = () => {
           description: error.message || "Failed to create tournament",
           variant: "destructive",
         });
+      } finally {
+        setIsSubmitting(false);
       }
     }
   };
