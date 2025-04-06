@@ -102,6 +102,21 @@ const CreateTournament = () => {
           return;
         }
 
+        // Ensure storage bucket exists
+        const { data: buckets } = await supabase.storage.listBuckets();
+        const bucketExists = buckets?.some(bucket => bucket.name === 'payment-proofs');
+        
+        if (!bucketExists) {
+          const { error } = await supabase.storage.createBucket('payment-proofs', {
+            public: true
+          });
+          
+          if (error) {
+            console.error("Error creating bucket:", error);
+            throw new Error("Failed to initialize storage");
+          }
+        }
+
         // Get the first sport config
         const sportConfig = sports[0];
         
@@ -128,37 +143,61 @@ const CreateTournament = () => {
         let bannerUrl = null;
 
         if (tournamentLogo) {
-          const fileExt = tournamentLogo.name.split('.').pop();
-          const filePath = `tournaments/logos/${uuidv4()}.${fileExt}`;
-          
-          const { error: logoError } = await supabase.storage
-            .from('payment-proofs')
-            .upload(filePath, tournamentLogo);
+          try {
+            const fileExt = tournamentLogo.name.split('.').pop();
+            const filePath = `logos/${user.id}/${uuidv4()}.${fileExt}`;
             
-          if (logoError) throw logoError;
-          
-          const { data: logoData } = supabase.storage
-            .from('payment-proofs')
-            .getPublicUrl(filePath);
+            const { error: logoError } = await supabase.storage
+              .from('payment-proofs')
+              .upload(filePath, tournamentLogo, {
+                cacheControl: '3600',
+                upsert: true
+              });
+              
+            if (logoError) throw logoError;
             
-          logoUrl = logoData.publicUrl;
+            const { data: logoData } = supabase.storage
+              .from('payment-proofs')
+              .getPublicUrl(filePath);
+              
+            logoUrl = logoData.publicUrl;
+          } catch (error) {
+            console.error("Logo upload error:", error);
+            toast({
+              title: "Logo Upload Failed",
+              description: "Failed to upload logo, but continuing with tournament creation",
+              variant: "destructive",
+            });
+          }
         }
         
         if (tournamentBanner) {
-          const fileExt = tournamentBanner.name.split('.').pop();
-          const filePath = `tournaments/banners/${uuidv4()}.${fileExt}`;
-          
-          const { error: bannerError } = await supabase.storage
-            .from('payment-proofs')
-            .upload(filePath, tournamentBanner);
+          try {
+            const fileExt = tournamentBanner.name.split('.').pop();
+            const filePath = `banners/${user.id}/${uuidv4()}.${fileExt}`;
             
-          if (bannerError) throw bannerError;
-          
-          const { data: bannerData } = supabase.storage
-            .from('payment-proofs')
-            .getPublicUrl(filePath);
+            const { error: bannerError } = await supabase.storage
+              .from('payment-proofs')
+              .upload(filePath, tournamentBanner, {
+                cacheControl: '3600',
+                upsert: true
+              });
+              
+            if (bannerError) throw bannerError;
             
-          bannerUrl = bannerData.publicUrl;
+            const { data: bannerData } = supabase.storage
+              .from('payment-proofs')
+              .getPublicUrl(filePath);
+              
+            bannerUrl = bannerData.publicUrl;
+          } catch (error) {
+            console.error("Banner upload error:", error);
+            toast({
+              title: "Banner Upload Failed",
+              description: "Failed to upload banner, but continuing with tournament creation",
+              variant: "destructive",
+            });
+          }
         }
 
         // Create tournament data with all necessary fields

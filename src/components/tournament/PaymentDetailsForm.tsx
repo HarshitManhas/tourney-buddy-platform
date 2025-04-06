@@ -28,6 +28,7 @@ const PaymentDetailsForm = ({
   const [feesEnabled, setFeesEnabled] = useState<Record<string, boolean>>({});
   const [uploading, setUploading] = useState<Record<string, boolean>>({});
   const [qrPreviewUrls, setQrPreviewUrls] = useState<Record<string, string>>({});
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   const toggleFees = (sportId: string, enabled: boolean) => {
     setFeesEnabled(prev => ({
@@ -50,6 +51,31 @@ const PaymentDetailsForm = ({
     }
   };
 
+  // Ensure the payment-proofs bucket exists first
+  const ensureStorageBucket = async () => {
+    try {
+      // Check if the bucket exists
+      const { data: buckets } = await supabase.storage.listBuckets();
+      const bucketExists = buckets?.some(bucket => bucket.name === 'payment-proofs');
+      
+      if (!bucketExists) {
+        // Create the bucket if it doesn't exist
+        const { error } = await supabase.storage.createBucket('payment-proofs', {
+          public: true
+        });
+        
+        if (error) {
+          console.error("Error creating bucket:", error);
+          return false;
+        }
+      }
+      return true;
+    } catch (error) {
+      console.error("Error checking/creating bucket:", error);
+      return false;
+    }
+  };
+
   const handleQrCodeUpload = async (file: File, sportId: string) => {
     if (!user) {
       toast({
@@ -61,19 +87,29 @@ const PaymentDetailsForm = ({
     }
 
     try {
+      setUploadError(null);
       setUploading(prev => ({...prev, [sportId]: true}));
       
       // Create preview URL for immediate feedback
       const previewUrl = URL.createObjectURL(file);
       setQrPreviewUrls(prev => ({...prev, [sportId]: previewUrl}));
 
+      // Ensure storage bucket exists
+      const bucketReady = await ensureStorageBucket();
+      if (!bucketReady) {
+        throw new Error("Failed to initialize storage");
+      }
+
       // Upload file to Supabase storage
       const fileExt = file.name.split('.').pop() || 'png';
-      const filePath = `tournaments/qrcodes/${uuidv4()}.${fileExt}`;
+      const filePath = `qrcodes/${user.id}/${uuidv4()}.${fileExt}`;
       
-      const { error: uploadError } = await supabase.storage
+      const { error: uploadError, data } = await supabase.storage
         .from('payment-proofs')
-        .upload(filePath, file);
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
 
       if (uploadError) {
         throw uploadError;
@@ -92,11 +128,12 @@ const PaymentDetailsForm = ({
         
         toast({
           title: "QR Code uploaded",
-          description: `QR code uploaded successfully`
+          description: "QR code uploaded successfully"
         });
       }
     } catch (error: any) {
       console.error("QR code upload error:", error);
+      setUploadError(error.message || "Failed to upload QR code");
       toast({
         title: "Upload Failed",
         description: error.message || "Failed to upload QR code",
@@ -198,6 +235,11 @@ const PaymentDetailsForm = ({
                       disabled={uploading[sport.id]}
                     />
                   </div>
+                  {uploadError && (
+                    <p className="mt-2 text-sm text-destructive">
+                      {uploadError}
+                    </p>
+                  )}
                 </div>
               </div>
             )}

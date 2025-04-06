@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -31,27 +30,42 @@ const TournamentPaymentForm = ({
   useEffect(() => {
     const fetchQRCode = async () => {
       try {
-        if (!tournament.id) return;
+        setLoading(true);
+        
+        // If the tournament already has a QR code URL, use it directly
+        if (tournament.image_url) {
+          setQrCodeUrl(tournament.image_url);
+          setLoading(false);
+          return;
+        }
+        
+        // Otherwise check if there are QR codes in the storage
+        if (!tournament.id) {
+          setLoading(false);
+          return;
+        }
 
-        // Try to fetch QR code from the tournament
+        // Try to fetch QR code from storage
         const { data, error } = await supabase
           .storage
           .from('payment-proofs')
-          .list(`tournaments/${tournament.id}`, {
+          .list(`qrcodes/${tournament.creator_id || ''}`, {
             limit: 1,
-            search: 'qr-code'
+            sortBy: { column: 'created_at', order: 'desc' }
           });
 
-        if (error) throw error;
-
-        if (data && data.length > 0) {
-          const { data: urlData } = supabase
-            .storage
-            .from('payment-proofs')
-            .getPublicUrl(`tournaments/${tournament.id}/${data[0].name}`);
-
-          setQrCodeUrl(urlData.publicUrl);
+        if (error || !data || data.length === 0) {
+          setLoading(false);
+          return;
         }
+
+        // Get the URL of the most recent QR code
+        const { data: urlData } = supabase
+          .storage
+          .from('payment-proofs')
+          .getPublicUrl(`qrcodes/${tournament.creator_id || ''}/${data[0].name}`);
+
+        setQrCodeUrl(urlData.publicUrl);
       } catch (error) {
         console.error("Error fetching QR code:", error);
       } finally {
@@ -60,7 +74,7 @@ const TournamentPaymentForm = ({
     };
 
     fetchQRCode();
-  }, [tournament.id]);
+  }, [tournament.id, tournament.image_url, tournament.creator_id]);
 
   return (
     <Card>
