@@ -6,6 +6,7 @@ import { ArrowLeft, Upload, QrCode, IndianRupee } from "lucide-react";
 import { Tournament } from "@/types/tournament";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
 interface TournamentPaymentFormProps {
   tournament: Tournament;
@@ -34,13 +35,31 @@ const TournamentPaymentForm = ({
         
         // If the tournament already has a QR code URL, use it directly
         if (tournament.image_url) {
+          console.log("Using tournament image_url as QR code:", tournament.image_url);
           setQrCodeUrl(tournament.image_url);
           setLoading(false);
           return;
         }
         
         // Otherwise check if there are QR codes in the storage
-        if (!tournament.id) {
+        if (!tournament.id || !tournament.creator_id) {
+          console.log("Missing tournament ID or creator ID", { 
+            tournamentId: tournament.id, 
+            creatorId: tournament.creator_id 
+          });
+          setLoading(false);
+          return;
+        }
+
+        console.log("Attempting to fetch QR code from storage for creator:", tournament.creator_id);
+
+        // Check if bucket exists by trying to list files
+        const { data: bucketCheck, error: bucketError } = await supabase.storage
+          .from('payment-proofs')
+          .list('');
+
+        if (bucketError) {
+          console.error("Error checking bucket:", bucketError);
           setLoading(false);
           return;
         }
@@ -49,25 +68,41 @@ const TournamentPaymentForm = ({
         const { data, error } = await supabase
           .storage
           .from('payment-proofs')
-          .list(`qrcodes/${tournament.creator_id || ''}`, {
-            limit: 1,
-            sortBy: { column: 'created_at', order: 'desc' }
+          .list(`qrcodes/${tournament.creator_id}`, {
+            limit: 10,
+            sortBy: { column: 'name', order: 'desc' }
           });
 
-        if (error || !data || data.length === 0) {
+        if (error) {
+          console.error("Error listing QR codes:", error);
           setLoading(false);
           return;
         }
 
+        if (!data || data.length === 0) {
+          console.log("No QR codes found for creator:", tournament.creator_id);
+          setLoading(false);
+          return;
+        }
+
+        console.log("Found QR codes:", data);
+
         // Get the URL of the most recent QR code
+        const qrCodeFile = data[0];
         const { data: urlData } = supabase
           .storage
           .from('payment-proofs')
-          .getPublicUrl(`qrcodes/${tournament.creator_id || ''}/${data[0].name}`);
+          .getPublicUrl(`qrcodes/${tournament.creator_id}/${qrCodeFile.name}`);
 
+        console.log("QR code public URL:", urlData.publicUrl);
         setQrCodeUrl(urlData.publicUrl);
       } catch (error) {
         console.error("Error fetching QR code:", error);
+        toast({
+          title: "Error fetching QR code",
+          description: "Could not load the payment QR code. Please try again later.",
+          variant: "destructive",
+        });
       } finally {
         setLoading(false);
       }

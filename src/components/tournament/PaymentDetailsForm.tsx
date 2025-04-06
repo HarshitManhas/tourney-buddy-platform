@@ -51,27 +51,46 @@ const PaymentDetailsForm = ({
     }
   };
 
-  // Ensure the payment-proofs bucket exists first
+  // Check if the bucket exists and create it if it doesn't
   const ensureStorageBucket = async () => {
     try {
-      // Check if the bucket exists
-      const { data: buckets } = await supabase.storage.listBuckets();
-      const bucketExists = buckets?.some(bucket => bucket.name === 'payment-proofs');
-      
-      if (!bucketExists) {
-        // Create the bucket if it doesn't exist
-        const { error } = await supabase.storage.createBucket('payment-proofs', {
-          public: true
-        });
-        
-        if (error) {
-          console.error("Error creating bucket:", error);
-          return false;
-        }
+      // First check if user is logged in
+      if (!user) {
+        return false;
       }
+
+      // First try to list files to see if the bucket exists and is accessible
+      const { data: listData, error: listError } = await supabase.storage
+        .from('payment-proofs')
+        .list('');
+      
+      // If we can list files, the bucket exists and is accessible
+      if (!listError) {
+        console.log("Bucket exists and is accessible:", listData);
+        return true;
+      }
+      
+      console.log("Trying to create bucket since listing failed:", listError.message);
+      
+      // Try to create the bucket if listing failed
+      const { data, error } = await supabase.storage.createBucket('payment-proofs', {
+        public: true
+      });
+      
+      if (error) {
+        if (error.message.includes("already exists")) {
+          console.log("Bucket already exists but we couldn't list files. This likely means RLS policies need to be adjusted.");
+          return true; // Return true because the bucket exists, even if we can't list files
+        }
+        
+        console.error("Error creating bucket:", error);
+        return false;
+      }
+      
+      console.log("Bucket created successfully:", data);
       return true;
     } catch (error) {
-      console.error("Error checking/creating bucket:", error);
+      console.error("Unexpected error in ensureStorageBucket:", error);
       return false;
     }
   };
@@ -97,12 +116,15 @@ const PaymentDetailsForm = ({
       // Ensure storage bucket exists
       const bucketReady = await ensureStorageBucket();
       if (!bucketReady) {
-        throw new Error("Failed to initialize storage");
+        throw new Error("Failed to initialize storage. Please try again or contact support.");
       }
 
-      // Upload file to Supabase storage
+      // Upload file to Supabase storage with more descriptive path
       const fileExt = file.name.split('.').pop() || 'png';
-      const filePath = `qrcodes/${user.id}/${uuidv4()}.${fileExt}`;
+      const timestamp = new Date().getTime();
+      const filePath = `qrcodes/${user.id}/${sportId}_${timestamp}_${uuidv4()}.${fileExt}`;
+      
+      console.log("Attempting to upload file to:", filePath);
       
       const { error: uploadError, data } = await supabase.storage
         .from('payment-proofs')
@@ -112,7 +134,8 @@ const PaymentDetailsForm = ({
         });
 
       if (uploadError) {
-        throw uploadError;
+        console.error("Upload error details:", uploadError);
+        throw new Error(uploadError.message || "Failed to upload QR code");
       }
 
       // Get the public URL
@@ -120,7 +143,9 @@ const PaymentDetailsForm = ({
         .from('payment-proofs')
         .getPublicUrl(filePath);
 
-      if (publicUrlData) {
+      if (publicUrlData && publicUrlData.publicUrl) {
+        console.log("File uploaded successfully, public URL:", publicUrlData.publicUrl);
+        
         // Update the sport config with the QR code URL
         updateSport(sportId, { 
           qrCodeUrl: publicUrlData.publicUrl 
@@ -130,6 +155,8 @@ const PaymentDetailsForm = ({
           title: "QR Code uploaded",
           description: "QR code uploaded successfully"
         });
+      } else {
+        throw new Error("Could not get public URL for uploaded file");
       }
     } catch (error: any) {
       console.error("QR code upload error:", error);
