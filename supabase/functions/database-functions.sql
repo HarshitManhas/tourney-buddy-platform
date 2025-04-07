@@ -183,14 +183,19 @@ RETURNS SETOF json AS $$
   ORDER BY tjr.submitted_at DESC;
 $$ LANGUAGE sql SECURITY DEFINER;
 
--- Create a function to handle creating storage bucket policies
+-- Create an improved function to handle creating storage bucket policies
 CREATE OR REPLACE FUNCTION public.create_storage_policy(bucket_name text)
 RETURNS void
 LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 BEGIN
-  -- Create policy to allow users to read from the bucket
+  -- First check if bucket exists
+  IF NOT EXISTS (SELECT 1 FROM storage.buckets WHERE id = bucket_name) THEN
+    RAISE EXCEPTION 'Bucket % does not exist', bucket_name;
+  END IF;
+
+  -- Create policy to allow public read from the bucket
   BEGIN
     INSERT INTO storage.policies (name, bucket_id, operation, definition) 
     VALUES (
@@ -201,7 +206,10 @@ BEGIN
     );
   EXCEPTION 
     WHEN unique_violation THEN
-      NULL; -- Policy already exists, ignore
+      -- Update the policy if it exists
+      UPDATE storage.policies 
+      SET definition = '(bucket_id = ''' || bucket_name || '''::text)'
+      WHERE name = bucket_name || '_read_policy';
   END;
   
   -- Create policy to allow authenticated users to insert
@@ -215,7 +223,10 @@ BEGIN
     );
   EXCEPTION 
     WHEN unique_violation THEN
-      NULL; -- Policy already exists, ignore
+      -- Update the policy if it exists
+      UPDATE storage.policies 
+      SET definition = '(bucket_id = ''' || bucket_name || '''::text AND auth.role() = ''authenticated'')'
+      WHERE name = bucket_name || '_insert_policy';
   END;
   
   -- Create policy to allow authenticated users to update their own files
@@ -229,7 +240,10 @@ BEGIN
     );
   EXCEPTION 
     WHEN unique_violation THEN
-      NULL; -- Policy already exists, ignore
+      -- Update the policy if it exists
+      UPDATE storage.policies 
+      SET definition = '(bucket_id = ''' || bucket_name || '''::text AND auth.role() = ''authenticated'' AND (storage.foldername(name))[1] = auth.uid()::text)'
+      WHERE name = bucket_name || '_update_policy';
   END;
   
   -- Create policy to allow authenticated users to delete their own files
@@ -243,7 +257,10 @@ BEGIN
     );
   EXCEPTION 
     WHEN unique_violation THEN
-      NULL; -- Policy already exists, ignore
+      -- Update the policy if it exists
+      UPDATE storage.policies 
+      SET definition = '(bucket_id = ''' || bucket_name || '''::text AND auth.role() = ''authenticated'' AND (storage.foldername(name))[1] = auth.uid()::text)'
+      WHERE name = bucket_name || '_delete_policy';
   END;
 END;
 $$;

@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, IndianRupee, QrCode } from "lucide-react";
@@ -63,32 +64,47 @@ const PaymentDetailsForm = ({
         return false;
       }
 
-      // Create the bucket if it doesn't exist (this will fail safely if it already exists)
-      const { error: createError } = await supabase.storage.createBucket('payment-proofs', {
-        public: true
-      });
+      // Check if the bucket exists first
+      const { data: buckets, error: bucketListError } = await supabase.storage.listBuckets();
       
-      if (createError && !createError.message.includes("already exists")) {
-        console.error("Error creating bucket:", createError);
-        throw new Error(createError.message);
+      if (bucketListError) {
+        console.error("Error listing buckets:", bucketListError);
+        throw new Error("Failed to check if storage bucket exists");
       }
       
-      // After creating the bucket, create the policies using the RPC function
-      try {
-        await supabase.rpc('create_storage_policy', {
-          bucket_name: 'payment-proofs'
+      const bucketExists = buckets?.some(bucket => bucket.name === 'payment-proofs');
+      
+      // Create the bucket if it doesn't exist
+      if (!bucketExists) {
+        const { error: createError } = await supabase.storage.createBucket('payment-proofs', {
+          public: true
         });
-        console.log("Storage policies created successfully");
-      } catch (policyError) {
-        console.log("Policy operation error:", policyError);
-        // Even if there's an error with policies, we can continue
+        
+        if (createError) {
+          console.error("Error creating bucket:", createError);
+          throw new Error("Failed to create storage bucket");
+        }
+        
+        console.log("Storage bucket created successfully");
+        
+        // Create policies for the new bucket
+        try {
+          await supabase.rpc('create_storage_policy', {
+            bucket_name: 'payment-proofs'
+          });
+          console.log("Storage policies created successfully");
+        } catch (policyError) {
+          console.error("Policy creation error:", policyError);
+          // Continue even if policy creation fails
+        }
+      } else {
+        console.log("Storage bucket already exists");
       }
       
-      console.log("Storage bucket ready");
       return true;
     } catch (error) {
       console.error("Unexpected error in ensureStorageBucket:", error);
-      return false;
+      throw new Error("Failed to initialize storage. Please try again later.");
     }
   };
 
@@ -111,18 +127,17 @@ const PaymentDetailsForm = ({
       setQrPreviewUrls(prev => ({...prev, [sportId]: previewUrl}));
 
       // Ensure storage bucket exists with proper permissions
-      const bucketReady = await ensureStorageBucket();
-      if (!bucketReady) {
-        throw new Error("Failed to initialize storage. Please try again or contact support.");
-      }
+      await ensureStorageBucket();
 
-      // Upload file to Supabase storage with more descriptive path
+      // Prepare a clean file path with simple structure
       const fileExt = file.name.split('.').pop() || 'png';
       const timestamp = new Date().getTime();
-      const filePath = `qrcodes/${user.id}/${sportId}_${timestamp}_${uuidv4()}.${fileExt}`;
+      const fileName = `${sportId}_${timestamp}.${fileExt}`;
+      const filePath = `qrcodes/${user.id}/${fileName}`;
       
       console.log("Attempting to upload file to:", filePath);
       
+      // Upload with simple metadata to avoid issues
       const { error: uploadError, data } = await supabase.storage
         .from('payment-proofs')
         .upload(filePath, file, {
@@ -132,6 +147,9 @@ const PaymentDetailsForm = ({
 
       if (uploadError) {
         console.error("Upload error details:", uploadError);
+        if (uploadError.message.includes("row level security")) {
+          throw new Error("Permission denied. Storage permissions not properly set up.");
+        }
         throw new Error(uploadError.message || "Failed to upload QR code");
       }
 
