@@ -1,5 +1,7 @@
 # 🏆 SportsFolio
 
+**[🌐 Live Demo → sports-folio.vercel.app](https://sports-folio.vercel.app/)**
+
 **SportsFolio** is a full-stack web application built to organize, discover, and manage local sports tournaments with ease. it brings advanced tournament tools, real-time engagement, and community-driven features to grassroots sports.
 
 ---
