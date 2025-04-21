@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -36,9 +35,10 @@ type JoinFormValues = z.infer<typeof joinFormSchema>;
 interface JoinFormProps {
   tournament: Tournament;
   onNext: (data: JoinFormValues) => void;
+  selectedSport: string;
 }
 
-export function JoinForm({ tournament, onNext }: JoinFormProps) {
+export function JoinForm({ tournament, onNext, selectedSport }: JoinFormProps) {
   const { user } = useAuth();
   const [roles, setRoles] = useState<string[]>([]);
   const [needsPartner, setNeedsPartner] = useState(false);
@@ -94,6 +94,11 @@ export function JoinForm({ tournament, onNext }: JoinFormProps) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <div className="mb-4">
+          <h2 className="text-xl font-semibold">Registration for {selectedSport}</h2>
+          <p className="text-sm text-muted-foreground">Please provide your details to join this sport event.</p>
+        </div>
+
         <FormField
           control={form.control}
           name="playerName"

@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -15,6 +14,8 @@ interface PaymentVerificationProps {
   formData: any;
   onBack: () => void;
   onComplete: () => void;
+  selectedSport: string;
+  sportConfig?: any;
 }
 
 export function PaymentVerification({
@@ -22,12 +23,62 @@ export function PaymentVerification({
   formData,
   onBack,
   onComplete,
+  selectedSport,
+  sportConfig,
 }: PaymentVerificationProps) {
   const { user } = useAuth();
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
+  const [loadingQr, setLoadingQr] = useState(true);
+
+  useEffect(() => {
+    const fetchQRCode = async () => {
+      try {
+        setLoadingQr(true);
+        if (!tournament?.creator_id) {
+          console.error("No creator ID found for tournament");
+          return;
+        }
+
+        // Get the QR code from storage
+        const { data } = await supabase
+          .storage
+          .from('qr-codes')
+          .list(`tournaments/${tournament.creator_id}`, {
+            limit: 1,
+            sortBy: { column: 'name', order: 'desc' }
+          });
+
+        if (data && data.length > 0) {
+          const { data: urlData } = supabase
+            .storage
+            .from('qr-codes')
+            .getPublicUrl(`tournaments/${tournament.creator_id}/${data[0].name}`);
+          
+          setQrCodeUrl(urlData.publicUrl);
+        } else {
+          console.error("No QR code found for creator:", tournament.creator_id);
+        }
+      } catch (error) {
+        console.error("Error fetching QR code:", error);
+      } finally {
+        setLoadingQr(false);
+      }
+    };
+
+    fetchQRCode();
+  }, [tournament?.creator_id]);
+
+  // Get entry fee based on selected sport or tournament-level fee
+  const getEntryFee = () => {
+    if (sportConfig && sportConfig.entryFee) {
+      return sportConfig.entryFee;
+    }
+    return tournament.entry_fee || 0;
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -43,60 +94,100 @@ export function PaymentVerification({
       return;
     }
 
+    if (!tournament?.id) {
+      toast.error("Tournament information is missing");
+      return;
+    }
+
+    let filePath: string | null = null;
+
     try {
       setIsSubmitting(true);
 
       // 1. Upload the payment proof image
       setIsUploading(true);
       const fileExt = imageFile.name.split(".").pop();
-      const filePath = `${user.id}/${uuidv4()}.${fileExt}`;
+      filePath = `${user.id}/${tournament.id}_${Date.now()}.${fileExt}`;
+
+      console.log("Uploading payment proof:", { filePath });
 
       const { data: uploadData, error: uploadError } = await supabase.storage
-        .from("payment-proofs")
-        .upload(filePath, imageFile);
+        .from("payment-screenshots")
+        .upload(filePath, imageFile, {
+          cacheControl: '3600',
+          upsert: false
+        });
 
       if (uploadError) {
-        throw uploadError;
+        console.error("Upload error:", uploadError);
+        throw new Error("Failed to upload payment proof. Please try again.");
       }
+
+      console.log("Payment proof uploaded successfully");
       setIsUploading(false);
 
       // Get the public URL of the uploaded file
-      const { data: publicUrlData } = await supabase.storage
-        .from("payment-proofs")
+      const { data: publicUrlData } = supabase.storage
+        .from("payment-screenshots")
         .getPublicUrl(filePath);
 
+      if (!publicUrlData?.publicUrl) {
+        throw new Error("Failed to get public URL for payment proof");
+      }
+
       const paymentProofUrl = publicUrlData.publicUrl;
+      console.log("Payment proof URL generated:", paymentProofUrl);
 
       // 2. Create the tournament join request
+      const joinRequestData = {
+        tournament_id: tournament.id,
+        user_id: user.id,
+        player_name: formData.playerName,
+        gender: formData.gender,
+        mobile_no: formData.mobileNo,
+        roles: formData.roles || [],
+        partner_name: formData.needsPartner ? formData.partnerName : null,
+        partner_gender: formData.needsPartner ? formData.partnerGender : null,
+        partner_mobile_no: formData.needsPartner ? formData.partnerMobileNo : null,
+        additional_info: formData.additionalInfo,
+        payment_proof_url: paymentProofUrl,
+        status: "pending",
+        sport: selectedSport
+      };
+
+      console.log("Creating tournament join request:", joinRequestData);
+
       const { data: requestData, error: requestError } = await supabase
         .from("tournament_join_requests")
-        .insert({
-          tournament_id: tournament.id,
-          user_id: user.id,
-          player_name: formData.playerName,
-          gender: formData.gender,
-          mobile_no: formData.mobileNo,
-          roles: formData.roles || [],
-          partner_name: formData.needsPartner ? formData.partnerName : null,
-          partner_gender: formData.needsPartner ? formData.partnerGender : null,
-          partner_mobile_no: formData.needsPartner ? formData.partnerMobileNo : null,
-          additional_info: formData.additionalInfo,
-          payment_proof_url: paymentProofUrl,
-          status: "pending",
-        })
+        .insert(joinRequestData)
         .select()
         .single();
 
       if (requestError) {
-        throw requestError;
+        console.error("Request error:", requestError);
+        throw new Error(requestError.message || "Failed to submit join request");
       }
 
+      console.log("Join request created successfully:", requestData);
       toast.success("Your tournament join request has been submitted!");
       onComplete();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error submitting join request:", error);
-      toast.error("Failed to submit join request. Please try again.");
+      
+      // Delete uploaded file if request creation fails
+      if (filePath) {
+        try {
+          await supabase.storage
+            .from("payment-screenshots")
+            .remove([filePath]);
+        } catch (deleteError) {
+          console.error("Error deleting failed upload:", deleteError);
+        }
+      }
+
+      toast.error(error.message || "Failed to submit join request. Please try again.");
     } finally {
+      setIsUploading(false);
       setIsSubmitting(false);
     }
   };
@@ -105,9 +196,9 @@ export function PaymentVerification({
     <div className="space-y-6">
       <Alert className="bg-yellow-50 text-yellow-800 border-yellow-200">
         <AlertCircle className="h-4 w-4" />
-        <AlertTitle>Payment Required</AlertTitle>
+        <AlertTitle>Payment Required for {selectedSport}</AlertTitle>
         <AlertDescription>
-          Please scan the QR code below and make a payment of ₹{tournament.entry_fee} to complete your registration.
+          Please scan the QR code below and make a payment of ₹{getEntryFee()} to complete your registration for {selectedSport}.
           After payment, upload a screenshot of your payment confirmation.
         </AlertDescription>
       </Alert>
@@ -115,22 +206,26 @@ export function PaymentVerification({
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardContent className="p-6">
-            <h3 className="mb-4 text-lg font-medium">Payment QR Code</h3>
+            <h3 className="mb-4 text-lg font-medium">Payment QR Code for {selectedSport}</h3>
             <div className="flex justify-center">
-              {tournament.image_url ? (
+              {loadingQr ? (
+                <div className="flex h-64 w-full items-center justify-center">
+                  <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary"></div>
+                </div>
+              ) : qrCodeUrl ? (
                 <img
-                  src={tournament.image_url}
-                  alt="Payment QR Code"
+                  src={qrCodeUrl}
+                  alt={`Payment QR Code for ${selectedSport}`}
                   className="max-h-64 object-contain"
                 />
               ) : (
                 <div className="flex h-64 w-full items-center justify-center rounded border border-dashed text-muted-foreground">
-                  No QR code available
+                  No QR code available. Please contact the organizer.
                 </div>
               )}
             </div>
             <div className="mt-4 text-center">
-              <p className="font-medium">Tournament Fee: ₹{tournament.entry_fee}</p>
+              <p className="font-medium">Tournament Fee: ₹{getEntryFee()}</p>
               <p className="text-sm text-muted-foreground">
                 Scan this QR code using any UPI app to make the payment
               </p>

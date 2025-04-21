@@ -7,6 +7,7 @@ import { Tournament } from "@/types/tournament";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { uploadPaymentProof } from "@/utils/storage";
 
 interface TournamentPaymentFormProps {
   tournament: Tournament;
@@ -33,15 +34,6 @@ const TournamentPaymentForm = ({
       try {
         setLoading(true);
         
-        // If the tournament already has a QR code URL, use it directly
-        if (tournament.image_url) {
-          console.log("Using tournament image_url as QR code:", tournament.image_url);
-          setQrCodeUrl(tournament.image_url);
-          setLoading(false);
-          return;
-        }
-        
-        // Otherwise check if there are QR codes in the storage
         if (!tournament.id || !tournament.creator_id) {
           console.log("Missing tournament ID or creator ID", { 
             tournamentId: tournament.id, 
@@ -53,26 +45,12 @@ const TournamentPaymentForm = ({
 
         console.log("Attempting to fetch QR code from storage for creator:", tournament.creator_id);
 
-        // Ensure bucket exists by creating it if needed
-        try {
-          const { error: createError } = await supabase.storage.createBucket('payment-proofs', {
-            public: true
-          });
-          
-          if (createError && !createError.message.includes("already exists")) {
-            console.error("Error ensuring bucket exists:", createError);
-          }
-        } catch (err) {
-          // Ignore errors here, just log them
-          console.log("Bucket likely exists, continuing:", err);
-        }
-
         // Try to fetch QR code from storage
         const { data, error } = await supabase
           .storage
-          .from('payment-proofs')
-          .list(`qrcodes/${tournament.creator_id}`, {
-            limit: 10,
+          .from('qr-codes')
+          .list(`tournaments/${tournament.creator_id}`, {
+            limit: 1,
             sortBy: { column: 'name', order: 'desc' }
           });
 
@@ -94,8 +72,8 @@ const TournamentPaymentForm = ({
         const qrCodeFile = data[0];
         const { data: urlData } = supabase
           .storage
-          .from('payment-proofs')
-          .getPublicUrl(`qrcodes/${tournament.creator_id}/${qrCodeFile.name}`);
+          .from('qr-codes')
+          .getPublicUrl(`tournaments/${tournament.creator_id}/${qrCodeFile.name}`);
 
         console.log("QR code public URL:", urlData.publicUrl);
         setQrCodeUrl(urlData.publicUrl);
@@ -112,7 +90,7 @@ const TournamentPaymentForm = ({
     };
 
     fetchQRCode();
-  }, [tournament.id, tournament.image_url, tournament.creator_id]);
+  }, [tournament.id, tournament.creator_id]);
 
   return (
     <Card>

@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, IndianRupee, QrCode } from "lucide-react";
@@ -40,7 +39,7 @@ const PaymentDetailsForm = ({
       // Reset fee data when disabled
       updateSport(sportId, { 
         additionalDetails: '',
-        qrCodeUrl: undefined
+        entryFee: 0
       });
       // Reset preview
       setQrPreviewUrls(prev => {
@@ -48,63 +47,6 @@ const PaymentDetailsForm = ({
         delete updated[sportId];
         return updated;
       });
-    }
-  };
-
-  // Check if the bucket exists and create it if it doesn't
-  const ensureStorageBucket = async () => {
-    try {
-      // First check if user is logged in
-      if (!user) {
-        toast({
-          title: "Authentication Error",
-          description: "You must be logged in to upload QR codes",
-          variant: "destructive",
-        });
-        return false;
-      }
-
-      // Check if the bucket exists first
-      const { data: buckets, error: bucketListError } = await supabase.storage.listBuckets();
-      
-      if (bucketListError) {
-        console.error("Error listing buckets:", bucketListError);
-        throw new Error("Failed to check if storage bucket exists");
-      }
-      
-      const bucketExists = buckets?.some(bucket => bucket.name === 'payment-proofs');
-      
-      // Create the bucket if it doesn't exist
-      if (!bucketExists) {
-        const { error: createError } = await supabase.storage.createBucket('payment-proofs', {
-          public: true
-        });
-        
-        if (createError) {
-          console.error("Error creating bucket:", createError);
-          throw new Error("Failed to create storage bucket");
-        }
-        
-        console.log("Storage bucket created successfully");
-        
-        // Create policies for the new bucket
-        try {
-          await supabase.rpc('create_storage_policy', {
-            bucket_name: 'payment-proofs'
-          });
-          console.log("Storage policies created successfully");
-        } catch (policyError) {
-          console.error("Policy creation error:", policyError);
-          // Continue even if policy creation fails
-        }
-      } else {
-        console.log("Storage bucket already exists");
-      }
-      
-      return true;
-    } catch (error) {
-      console.error("Unexpected error in ensureStorageBucket:", error);
-      throw new Error("Failed to initialize storage. Please try again later.");
     }
   };
 
@@ -126,20 +68,14 @@ const PaymentDetailsForm = ({
       const previewUrl = URL.createObjectURL(file);
       setQrPreviewUrls(prev => ({...prev, [sportId]: previewUrl}));
 
-      // Ensure storage bucket exists with proper permissions
-      await ensureStorageBucket();
-
-      // Prepare a clean file path with simple structure
+      // Upload the file to qr-codes bucket
       const fileExt = file.name.split('.').pop() || 'png';
-      const timestamp = new Date().getTime();
-      const fileName = `${sportId}_${timestamp}.${fileExt}`;
-      const filePath = `qrcodes/${user.id}/${fileName}`;
+      const filePath = `tournaments/${user.id}/qr_code.${fileExt}`;
       
       console.log("Attempting to upload file to:", filePath);
       
-      // Upload with simple metadata to avoid issues
-      const { error: uploadError, data } = await supabase.storage
-        .from('payment-proofs')
+      const { error: uploadError } = await supabase.storage
+        .from('qr-codes')
         .upload(filePath, file, {
           cacheControl: '3600',
           upsert: true
@@ -147,38 +83,23 @@ const PaymentDetailsForm = ({
 
       if (uploadError) {
         console.error("Upload error details:", uploadError);
-        if (uploadError.message.includes("row level security")) {
-          throw new Error("Permission denied. Storage permissions not properly set up.");
-        }
-        throw new Error(uploadError.message || "Failed to upload QR code");
-      }
-
-      // Get the public URL
-      const { data: publicUrlData } = supabase.storage
-        .from('payment-proofs')
-        .getPublicUrl(filePath);
-
-      if (publicUrlData && publicUrlData.publicUrl) {
-        console.log("File uploaded successfully, public URL:", publicUrlData.publicUrl);
-        
-        // Update the sport config with the QR code URL
-        updateSport(sportId, { 
-          qrCodeUrl: publicUrlData.publicUrl 
-        });
-        
         toast({
-          title: "QR Code uploaded",
-          description: "QR code uploaded successfully"
+          title: "QR Code Upload Failed",
+          description: "Could not upload QR code. Please try again.",
+          variant: "destructive",
         });
-      } else {
-        throw new Error("Could not get public URL for uploaded file");
+        return;
       }
+
+      toast({
+        title: "QR Code uploaded",
+        description: "QR code uploaded successfully"
+      });
     } catch (error: any) {
       console.error("QR code upload error:", error);
-      setUploadError(error.message || "Failed to upload QR code");
       toast({
         title: "Upload Failed",
-        description: error.message || "Failed to upload QR code",
+        description: "Failed to upload QR code: " + error.message,
         variant: "destructive",
       });
     } finally {

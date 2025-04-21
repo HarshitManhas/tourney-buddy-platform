@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { CheckCircle, CalendarClock, InfoIcon, ArrowLeft } from "lucide-react";
 
 const JoinTournament = () => {
-  const { id } = useParams<{ id: string }>();
+  const { id, sport } = useParams<{ id: string; sport: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
   const [tournament, setTournament] = useState<Tournament | null>(null);
@@ -23,6 +22,14 @@ const JoinTournament = () => {
   const [currentStep, setCurrentStep] = useState("player-info");
   const [completedSteps, setCompletedSteps] = useState<string[]>([]);
   const [existingRequest, setExistingRequest] = useState(null);
+  const [selectedSport, setSelectedSport] = useState<string | null>(null);
+  const [sportConfig, setSportConfig] = useState<any | null>(null);
+
+  useEffect(() => {
+    if (sport) {
+      setSelectedSport(sport);
+    }
+  }, [sport]);
 
   useEffect(() => {
     if (!user) {
@@ -52,7 +59,7 @@ const JoinTournament = () => {
           format: tournamentData.format || "",
           teams_registered: tournamentData.teams_registered || 0,
           team_limit: tournamentData.team_limit || 0,
-          participants_registered: 0, // Set a default value directly instead of accessing from tournamentData
+          participants_registered: 0,
           entry_fee: tournamentData.entry_fee,
           creator_id: tournamentData.creator_id,
           image_url: tournamentData.image_url,
@@ -70,6 +77,24 @@ const JoinTournament = () => {
         };
         
         setTournament(tournament);
+        
+        // Fetch sport configuration if sport is specified
+        if (selectedSport) {
+          try {
+            const { data: sportConfigData } = await (supabase as any)
+              .from('tournament_sports')
+              .select()
+              .eq('tournament_id', id)
+              .eq('sport', selectedSport)
+              .maybeSingle();
+              
+            if (sportConfigData) {
+              setSportConfig(sportConfigData);
+            }
+          } catch (error) {
+            console.error('Error fetching sport config:', error);
+          }
+        }
         
         // Check if user has already submitted a join request
         if (user) {
@@ -93,7 +118,7 @@ const JoinTournament = () => {
     };
 
     fetchTournamentAndCheckRequest();
-  }, [id, user, navigate]);
+  }, [id, user, navigate, selectedSport]);
 
   // Check if registration period has ended
   const isRegistrationClosed = () => {
@@ -343,7 +368,11 @@ const JoinTournament = () => {
           
           <div className="mt-8">
             {currentStep === "player-info" && (
-              <JoinForm tournament={tournament} onNext={handlePlayerInfoComplete} />
+              <JoinForm 
+                tournament={tournament} 
+                onNext={handlePlayerInfoComplete}
+                selectedSport={selectedSport || tournament.sport}
+              />
             )}
             
             {currentStep === "payment-verification" && (
@@ -352,6 +381,8 @@ const JoinTournament = () => {
                 formData={formData}
                 onBack={handleBackToPlayerInfo}
                 onComplete={handlePaymentComplete}
+                selectedSport={selectedSport || tournament.sport}
+                sportConfig={sportConfig}
               />
             )}
             

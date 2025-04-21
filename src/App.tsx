@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -18,6 +17,7 @@ import Profile from "./pages/Profile";
 import MessagesPage from "./pages/MessagesPage";
 import { AuthProvider } from "./contexts/AuthContext";
 import AuthGuard from "./components/AuthGuard";
+import TeamDetail from "@/pages/TeamDetail";
 
 const queryClient = new QueryClient();
 
@@ -36,6 +36,7 @@ const App = () => (
             <Route path="/tournaments" element={<TournamentsPage />} />
             <Route path="/tournaments/:id" element={<TournamentDetail />} />
             <Route path="/tournaments/:id/join" element={<JoinTournament />} />
+            <Route path="/tournaments/:id/join/:sport" element={<JoinTournament />} />
             
             {/* Protected routes */}
             <Route 
@@ -81,6 +82,9 @@ const App = () => (
             
             {/* Catch-all route */}
             <Route path="*" element={<NotFound />} />
+
+            {/* New team detail route */}
+            <Route path="/teams/:teamId" element={<TeamDetail />} />
           </Routes>
         </BrowserRouter>
       </TooltipProvider>

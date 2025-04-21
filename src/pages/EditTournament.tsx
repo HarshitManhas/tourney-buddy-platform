@@ -1,195 +1,364 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useParams, useNavigate, Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Form } from "@/components/ui/form";
+import { Separator } from "@/components/ui/separator";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import SportSettings from "@/components/tournament/SportSettings";
 import { toast } from "@/hooks/use-toast";
-import { Database } from "@/integrations/supabase/types";
-import AuthGuard from "@/components/AuthGuard";
-
-type Tournament = Database['public']['Tables']['tournaments']['Row'];
+import { tournamentFormSchema, TournamentFormValues, SportConfig } from "@/types/tournament";
+import TournamentMedia from "@/components/tournament/TournamentMedia";
+import TournamentInfoForm from "@/components/tournament/TournamentInfoForm";
+import ContactInfoForm from "@/components/tournament/ContactInfoForm";
+import SportsList from "@/components/tournament/SportsList";
+import PaymentDetailsForm from "@/components/tournament/PaymentDetailsForm";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { uploadTournamentMedia } from "@/utils/storage";
 
 const EditTournament = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [tournament, setTournament] = useState<Tournament | null>(null);
+  const [step, setStep] = useState(1);
+  const [sports, setSports] = useState<SportConfig[]>([]);
+  const [tournamentLogo, setTournamentLogo] = useState<File | null>(null);
+  const [tournamentBanner, setTournamentBanner] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [bannerPreview, setBannerPreview] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [formData, setFormData] = useState({
-    tournament_name: "",
-    sport: "",
-    format: "",
-    location: "",
+  
+  const form = useForm<TournamentFormValues>({
+    resolver: zodResolver(tournamentFormSchema),
+    defaultValues: {
+      tournamentName: "",
+      about: "",
+      startDate: "",
+      endDate: "",
+      registrationDueDate: "",
+      dueTime: "",
+      contactName: "",
+      contactEmail: "",
+      contactPhone: "",
+      address: "",
+      street: "",
     city: "",
     state: "",
-    about: "",
-    contact_name: "",
-    contact_email: "",
-    contact_phone: "",
-    start_date: "",
-    end_date: "",
-    registration_due_date: "",
-    team_limit: "",
-    entry_fee: "",
-    play_type: ""
+      country: "",
+      pinCode: "",
+    },
   });
 
-  const isIndividualFormat = () => {
-    if (!["Tennis", "Badminton", "Table Tennis"].includes(formData.sport)) return false;
-    return formData.play_type === "Singles";
-  };
-
   useEffect(() => {
-    const fetchTournament = async () => {
-      if (!id) return;
+    const fetchTournamentData = async () => {
+      if (!id || !user) {
+        console.log("Missing ID or user:", { id, user });
+        setLoading(false);
+        return;
+      }
 
       try {
-        const { data, error } = await supabase
+        setLoading(true);
+        console.log("Fetching tournament data for ID:", id);
+        
+        // First check if user is authorized to edit this tournament
+        const { data: authCheck, error: authError } = await supabase
           .from('tournaments')
-          .select('*')
+          .select('creator_id')
           .eq('id', id)
           .single();
 
-        if (error) throw error;
-        
-        if (data) {
-          setTournament(data);
-          
-          const formatDate = (dateString: string | null) => {
-            if (!dateString) return "";
-            const date = new Date(dateString);
-            return date.toISOString().split('T')[0];
-          };
-
-          setFormData({
-            tournament_name: data.tournament_name || "",
-            sport: data.sport || "",
-            format: data.format || "",
-            location: data.location || "",
-            city: data.city || "",
-            state: data.state || "",
-            about: data.about || "",
-            contact_name: data.contact_name || "",
-            contact_email: data.contact_email || "",
-            contact_phone: data.contact_phone || "",
-            start_date: formatDate(data.start_date),
-            end_date: formatDate(data.end_date),
-            registration_due_date: formatDate(data.registration_due_date),
-            team_limit: data.team_limit?.toString() || "",
-            entry_fee: data.entry_fee?.toString() || "",
-            play_type: ""
-          });
+        if (authError) {
+          console.error("Error checking authorization:", authError);
+          throw new Error("Failed to verify tournament ownership");
         }
+
+        if (!authCheck || authCheck.creator_id !== user.id) {
+          console.error("User not authorized to edit tournament");
+          throw new Error("You are not authorized to edit this tournament");
+        }
+
+        // Fetch tournament details with only the fields that exist in the database
+        const { data: tournamentData, error: tournamentError } = await supabase
+          .from('tournaments')
+          .select(`
+            id,
+            tournament_name,
+            about,
+            start_date,
+            end_date,
+            registration_due_date,
+            contact_name,
+            contact_email,
+            contact_phone,
+            city,
+            state,
+            logo_url,
+            banner_url,
+            sport,
+            format,
+            entry_fee,
+            team_limit
+          `)
+          .eq('id', id)
+          .single();
+
+        if (tournamentError) {
+          console.error("Error fetching tournament:", tournamentError);
+          throw tournamentError;
+        }
+
+        if (!tournamentData) {
+          console.error("No tournament found with ID:", id);
+          throw new Error("Tournament not found");
+        }
+
+        console.log("Tournament data loaded:", tournamentData);
+
+        // Fetch sports configuration
+        const { data: sportsData, error: sportsError } = await supabase
+          .from('tournament_sports')
+          .select('*')
+          .eq('tournament_id', id);
+
+        if (sportsError) {
+          console.error("Error fetching sports:", sportsError);
+          // Don't throw error for sports, continue with tournament data
+        }
+
+        console.log("Sports data loaded:", sportsData);
+
+        // Set form values with only the fields that exist
+        form.reset({
+          tournamentName: tournamentData.tournament_name || "",
+          about: tournamentData.about || "",
+          startDate: tournamentData.start_date || "",
+          endDate: tournamentData.end_date || "",
+          registrationDueDate: tournamentData.registration_due_date || "",
+          contactName: tournamentData.contact_name || "",
+          contactEmail: tournamentData.contact_email || "",
+          contactPhone: tournamentData.contact_phone || "",
+          city: tournamentData.city || "",
+          state: tournamentData.state || ""
+        });
+
+        // Set media previews
+        if (tournamentData.logo_url) {
+          setLogoPreview(tournamentData.logo_url);
+        }
+        if (tournamentData.banner_url) {
+          setBannerPreview(tournamentData.banner_url);
+        }
+
+        // Transform and set sports data
+        const transformedSports = sportsData?.map(sport => ({
+          id: sport.id,
+          sport: sport.sport,
+          eventName: sport.event_name,
+          format: sport.format,
+          maxTeams: sport.max_teams,
+          maxParticipants: sport.max_participants,
+          gender: sport.gender,
+          entryFee: sport.entry_fee,
+          playType: sport.play_type,
+          additionalDetails: sport.additional_details
+        })) || [];
+
+        console.log("Transformed sports:", transformedSports);
+        setSports(transformedSports);
       } catch (error) {
-        console.error('Error fetching tournament:', error);
+        console.error('Error fetching tournament data:', error);
         toast({
           title: "Error",
-          description: "Failed to load tournament details",
+          description: error instanceof Error ? error.message : "Failed to load tournament data",
           variant: "destructive",
         });
+        navigate('/tournaments');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchTournament();
-  }, [id]);
+    fetchTournamentData();
+  }, [id, user, form, navigate]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setTournamentLogo(file);
+      const reader = new FileReader();
+      reader.onload = () => {
+        setLogoPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!tournament || !user) return;
-    
-    if (tournament.creator_id !== user.id) {
+  const handleBannerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setTournamentBanner(file);
+      const reader = new FileReader();
+      reader.onload = () => {
+        setBannerPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const onSubmit = async (values: TournamentFormValues) => {
+    if (step === 1) {
+      if (sports.length === 0) {
+        toast({
+          title: "Sports Required",
+          description: "Please add at least one sport for the tournament",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      setStep(2);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } else {
+      try {
+        setIsSubmitting(true);
+        
+        if (!user) {
       toast({
-        title: "Permission denied",
-        description: "You can only edit tournaments you created",
+            title: "Authentication Error",
+            description: "You must be logged in to edit a tournament",
         variant: "destructive",
       });
       return;
     }
 
-    setSubmitting(true);
-    
-    try {
-      const updateData = {
-        ...formData,
-        team_limit: formData.team_limit ? parseInt(formData.team_limit) : null,
-        entry_fee: formData.entry_fee ? parseInt(formData.entry_fee) : null
-      };
-      
-      const { error } = await supabase
+        // Upload new media if provided
+        let logoUrl = logoPreview;
+        let bannerUrl = bannerPreview;
+
+        if (tournamentLogo) {
+          logoUrl = await uploadTournamentMedia(tournamentLogo, 'logo');
+        }
+        
+        if (tournamentBanner) {
+          bannerUrl = await uploadTournamentMedia(tournamentBanner, 'banner');
+        }
+
+        // Update tournament data with all fields
+        const { error: tournamentError } = await supabase
         .from('tournaments')
-        .update(updateData)
-        .eq('id', tournament.id)
+          .update({
+            tournament_name: values.tournamentName,
+            about: values.about,
+            start_date: values.startDate,
+            end_date: values.endDate,
+            registration_due_date: values.registrationDueDate,
+            due_time: values.dueTime,
+            contact_name: values.contactName,
+            contact_email: values.contactEmail,
+            contact_phone: values.contactPhone,
+            address: values.address,
+            street: values.street,
+            city: values.city,
+            state: values.state,
+            country: values.country,
+            pin_code: values.pinCode,
+            logo_url: logoUrl,
+            banner_url: bannerUrl,
+            image_url: bannerUrl,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', id)
         .eq('creator_id', user.id);
 
-      if (error) throw error;
+        if (tournamentError) {
+          console.error("Error updating tournament:", tournamentError);
+          throw tournamentError;
+        }
+
+        // Delete existing sports for this tournament
+        const { error: deleteError } = await supabase
+          .from('tournament_sports')
+          .delete()
+          .eq('tournament_id', id);
+
+        if (deleteError) {
+          console.error("Error deleting existing sports:", deleteError);
+          throw deleteError;
+        }
+
+        // Insert new sports configuration
+        const sportsData = sports.map(sport => ({
+          tournament_id: id,
+          sport: sport.sport,
+          event_name: sport.eventName,
+          format: sport.format,
+          max_teams: sport.maxTeams,
+          max_participants: sport.maxParticipants,
+          gender: sport.gender,
+          entry_fee: sport.entryFee,
+          play_type: sport.playType,
+          additional_details: sport.additionalDetails,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }));
+
+        const { error: sportsError } = await supabase
+          .from('tournament_sports')
+          .insert(sportsData);
+
+        if (sportsError) {
+          console.error("Error saving sports data:", sportsError);
+          throw sportsError;
+        }
       
       toast({
         title: "Success",
         description: "Tournament updated successfully",
       });
       
-      navigate(`/tournaments/${tournament.id}`);
-    } catch (error: any) {
+        navigate(`/tournaments/${id}`);
+      } catch (error) {
       console.error('Error updating tournament:', error);
       toast({
         title: "Error",
-        description: "Failed to update tournament",
+          description: error instanceof Error ? error.message : "Failed to update tournament",
         variant: "destructive",
       });
     } finally {
-      setSubmitting(false);
+        setIsSubmitting(false);
+      }
     }
+  };
+
+  const addSport = (sportConfig: SportConfig) => {
+    setSports((prev) => [...prev, sportConfig]);
+  };
+
+  const removeSport = (id: string) => {
+    setSports((prev) => prev.filter((sport) => sport.id !== id));
+  };
+
+  const updateSport = (id: string, updatedConfig: Partial<SportConfig>) => {
+    setSports((prev) =>
+      prev.map((sport) =>
+        sport.id === id ? { ...sport, ...updatedConfig } : sport
+      )
+    );
   };
 
   if (loading) {
     return (
-      <div className="flex min-h-screen flex-col">
+      <div>
         <Navbar />
-        <div className="container mx-auto px-4 py-8 flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
-            <p className="mt-4">Loading tournament details...</p>
+        <div className="container mx-auto p-4 py-8">
+          <div className="flex justify-center items-center min-h-[50vh]">
+            <div className="animate-pulse text-xl">Loading tournament data...</div>
           </div>
-        </div>
-        <Footer />
-      </div>
-    );
-  }
-
-  if (tournament && user && tournament.creator_id !== user.id) {
-    return (
-      <div className="flex min-h-screen flex-col">
-        <Navbar />
-        <div className="container mx-auto px-4 py-8">
-          <Card>
-            <CardHeader>
-              <CardTitle>Permission Denied</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="mb-4">You can only edit tournaments that you created.</p>
-              <Button asChild>
-                <a href={`/tournaments/${tournament.id}`}>View Tournament</a>
-              </Button>
-            </CardContent>
-          </Card>
         </div>
         <Footer />
       </div>
@@ -197,201 +366,58 @@ const EditTournament = () => {
   }
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div>
       <Navbar />
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold">Edit Tournament</h1>
-          <p className="text-muted-foreground">Update your tournament details</p>
+      <div className="container mx-auto p-4 py-8">
+        <div className="mb-6 flex items-center justify-between">
+          <div className="text-sm text-muted-foreground">
+            Step {step} of 2
+          </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-8">
-          <Card>
-            <CardHeader>
-              <CardTitle>Basic Information</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="tournament_name">Tournament Name*</Label>
-                  <Input 
-                    id="tournament_name"
-                    name="tournament_name"
-                    value={formData.tournament_name}
-                    onChange={handleChange}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="sport">Sport</Label>
-                  <Input 
-                    id="sport"
-                    name="sport"
-                    value={formData.sport}
-                    onChange={handleChange}
-                  />
+        {step === 1 ? (
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+              <TournamentMedia 
+                logoPreview={logoPreview}
+                bannerPreview={bannerPreview}
+                handleLogoChange={handleLogoChange}
+                handleBannerChange={handleBannerChange}
+              />
+
+              <div className="grid gap-8 md:grid-cols-2">
+                <TournamentInfoForm form={form} />
+                <ContactInfoForm form={form} />
+              </div>
+              
+              <Separator className="my-8" />
+              
+              <div>
+                <h2 className="mb-6 text-xl font-semibold">Sports & Event Settings</h2>
+                
+                <SportsList sports={sports} removeSport={removeSport} />
+                
+                <div className="rounded-md border border-dashed border-green-500 bg-green-50 p-6">
+                  <SportSettings onAddSport={addSport} />
                 </div>
               </div>
               
-              <div className="space-y-2">
-                <Label htmlFor="about">About</Label>
-                <Textarea 
-                  id="about"
-                  name="about"
-                  value={formData.about || ""}
-                  onChange={handleChange}
-                  rows={4}
-                />
+              <div className="flex items-center justify-between pt-4">
+                <Button variant="outline" asChild>
+                  <Link to={`/tournaments/${id}`}>Cancel</Link>
+                </Button>
+                <Button type="submit">Save & Proceed to Payment</Button>
               </div>
-
-              <div className="grid gap-4 md:grid-cols-3">
-                <div className="space-y-2">
-                  <Label htmlFor="location">Location</Label>
-                  <Input 
-                    id="location"
-                    name="location"
-                    value={formData.location}
-                    onChange={handleChange}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="city">City</Label>
-                  <Input 
-                    id="city"
-                    name="city"
-                    value={formData.city || ""}
-                    onChange={handleChange}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="state">State</Label>
-                  <Input 
-                    id="state"
-                    name="state"
-                    value={formData.state || ""}
-                    onChange={handleChange}
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Dates & Registration</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-3">
-                <div className="space-y-2">
-                  <Label htmlFor="start_date">Start Date</Label>
-                  <Input 
-                    id="start_date"
-                    name="start_date"
-                    type="date"
-                    value={formData.start_date}
-                    onChange={handleChange}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="end_date">End Date</Label>
-                  <Input 
-                    id="end_date"
-                    name="end_date"
-                    type="date"
-                    value={formData.end_date}
-                    onChange={handleChange}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="registration_due_date">Registration Due Date</Label>
-                  <Input 
-                    id="registration_due_date"
-                    name="registration_due_date"
-                    type="date"
-                    value={formData.registration_due_date}
-                    onChange={handleChange}
-                  />
-                </div>
-              </div>
-              
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="team_limit">
-                    {isIndividualFormat() ? "Maximum Participants" : "Maximum Teams"}
-                  </Label>
-                  <Input 
-                    id="team_limit"
-                    name="team_limit"
-                    type="number"
-                    value={formData.team_limit}
-                    onChange={handleChange}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="entry_fee">Entry Fee (₹)</Label>
-                  <Input 
-                    id="entry_fee"
-                    name="entry_fee"
-                    type="number"
-                    value={formData.entry_fee}
-                    onChange={handleChange}
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Contact Information</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-3">
-                <div className="space-y-2">
-                  <Label htmlFor="contact_name">Contact Name</Label>
-                  <Input 
-                    id="contact_name"
-                    name="contact_name"
-                    value={formData.contact_name || ""}
-                    onChange={handleChange}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="contact_email">Contact Email</Label>
-                  <Input 
-                    id="contact_email"
-                    name="contact_email"
-                    type="email"
-                    value={formData.contact_email || ""}
-                    onChange={handleChange}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="contact_phone">Contact Phone</Label>
-                  <Input 
-                    id="contact_phone"
-                    name="contact_phone"
-                    value={formData.contact_phone || ""}
-                    onChange={handleChange}
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <div className="flex justify-end gap-4">
-            <Button 
-              type="button" 
-              variant="outline"
-              onClick={() => navigate(`/tournaments/${id}`)}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={submitting}>
-              {submitting ? 'Saving...' : 'Save Changes'}
-            </Button>
-          </div>
-        </form>
+            </form>
+          </Form>
+        ) : (
+          <PaymentDetailsForm 
+            sports={sports}
+            updateSport={updateSport}
+            setStep={setStep}
+            onSubmit={() => onSubmit(form.getValues())}
+          />
+        )}
       </div>
       <Footer />
     </div>

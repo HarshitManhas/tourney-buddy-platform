@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import TournamentCard, { TournamentCardProps } from "@/components/TournamentCard";
 import { Input } from "@/components/ui/input";
@@ -22,17 +21,18 @@ const TournamentList = () => {
     const fetchTournaments = async () => {
       try {
         setLoading(true);
-        const { data, error } = await supabase
+        // Fetch tournaments with their sports configuration
+        const { data: tournamentsData, error: tournamentsError } = await supabase
           .from('tournaments')
-          .select('*');
+          .select('*, tournament_sports(id, sport, event_name)');
 
-        if (error) {
-          throw error;
+        if (tournamentsError) {
+          throw tournamentsError;
         }
 
-        if (data) {
+        if (tournamentsData) {
           // Transform data to match TournamentCardProps format
-          const formattedData = data.map((item: Tournament) => ({
+          const formattedData = tournamentsData.map((item: any) => ({
             id: item.id,
             title: item.tournament_name,
             sport: item.sport || "General",
@@ -42,7 +42,12 @@ const TournamentList = () => {
             entryFee: item.entry_fee ? `₹${item.entry_fee}` : "Free",
             teamsRegistered: item.teams_registered || 0,
             teamLimit: item.team_limit || 10,
-            image: item.image_url || undefined
+            image: item.banner_url || item.image_url || undefined,
+            logo_url: item.logo_url,
+            sports_config: item.tournament_sports,
+            start_date: item.start_date,
+            end_date: item.end_date,
+            registration_due_date: item.registration_due_date
           }));
           
           setTournaments(formattedData);
@@ -58,14 +63,19 @@ const TournamentList = () => {
     fetchTournaments();
   }, []);
   
+  // Get unique sports for filter
+  const sports = Array.from(new Set([
+    ...tournaments.map(t => t.sport),
+    ...tournaments.flatMap(t => t.sports_config?.map(config => config.sport) || [])
+  ])).filter(sport => sport && sport !== "General");
+  
   const filteredTournaments = tournaments.filter(tournament => {
     const matchesSearch = tournament.title.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesSport = sportFilter === "all" || tournament.sport === sportFilter;
+    const matchesSport = sportFilter === "all" || 
+      tournament.sport === sportFilter || 
+      tournament.sports_config?.some(config => config.sport === sportFilter);
     return matchesSearch && matchesSport;
   });
-  
-  // Get unique sports for filter
-  const sports = Array.from(new Set(tournaments.map(t => t.sport)));
   
   return (
     <div className="container mx-auto px-4 py-8">
