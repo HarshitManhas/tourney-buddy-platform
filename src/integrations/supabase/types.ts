@@ -26,6 +26,14 @@ export interface Database {
           banner_url: string;
         };
       };
+      tournament_participants: {
+        Row: {
+          id: string;
+          tournament_id: string;
+          user_id: string;
+          created_at?: string;
+        };
+      };
       // Add other tables as needed
     };
   };

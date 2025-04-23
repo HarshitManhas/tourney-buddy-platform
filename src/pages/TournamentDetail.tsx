@@ -92,6 +92,15 @@ const TournamentDetail = () => {
           return;
         }
 
+        // Log creator_id for debugging
+        console.log("Tournament creator_id:", tournamentData.creator_id);
+        console.log("Current user ID:", user?.id);
+
+        // Check if current user is the organizer - do this early
+        const isUserOrganizer = user && tournamentData.creator_id === user.id;
+        console.log("Is user the organizer?", isUserOrganizer);
+        setIsOrganizer(isUserOrganizer);
+
         // Then fetch the sports configuration
         console.log("Fetching sports for tournament ID:", id);
         const { data: sportsData, error: sportsError } = await supabase
@@ -143,11 +152,6 @@ const TournamentDetail = () => {
         
         console.log("Final tournament data:", combinedData);
         setTournament(combinedData);
-          
-          // Check if current user is the organizer
-          if (user && tournamentData.creator_id === user.id) {
-            setIsOrganizer(true);
-        }
       } catch (error) {
         console.error("Unexpected error:", error);
         toast.error("An unexpected error occurred");
@@ -159,6 +163,22 @@ const TournamentDetail = () => {
 
     fetchTournamentDetails();
   }, [id, user]);
+
+  // Add effect to update isOrganizer when user or tournament changes
+  useEffect(() => {
+    if (user && tournament) {
+      const isUserOrganizer = tournament.creator_id === user.id;
+      console.log("Rechecking if user is organizer:", isUserOrganizer);
+      console.log("User ID:", user.id);
+      console.log("Tournament creator ID:", tournament.creator_id);
+      setIsOrganizer(isUserOrganizer);
+    }
+  }, [user, tournament]);
+
+  // Debug logs to show the current value of isOrganizer
+  useEffect(() => {
+    console.log("isOrganizer value updated:", isOrganizer);
+  }, [isOrganizer]);
 
   useEffect(() => {
     const checkRegistrationStatus = () => {
@@ -385,9 +405,12 @@ const TournamentDetail = () => {
               <TabsList>
                 <TabsTrigger value="details">Details</TabsTrigger>
                 <TabsTrigger value="announcements">Announcements</TabsTrigger>
-                {isOrganizer && (
-                  <TabsTrigger value="management">Management</TabsTrigger>
-                )}
+                {(() => {
+                  console.log("TabsTrigger check - isOrganizer:", isOrganizer);
+                  return isOrganizer && (
+                    <TabsTrigger value="management">Management</TabsTrigger>
+                  );
+                })()}
                 {approvedSports.length > 0 && (
                   <TabsTrigger value="schedule">Schedule</TabsTrigger>
                 )}
@@ -495,14 +518,17 @@ const TournamentDetail = () => {
                 <TournamentAnnouncements tournamentId={id || ""} isOrganizer={isOrganizer} />
               </TabsContent>
 
-              {isOrganizer && (
-                <TabsContent value="management">
-                  <TournamentManagement 
-                    tournamentId={id || ""} 
-                    sports={tournament?.sports_config || []} 
-                  />
-                </TabsContent>
-              )}
+              {(() => {
+                console.log("TabsContent check - isOrganizer:", isOrganizer);
+                return isOrganizer && (
+                  <TabsContent value="management">
+                    <TournamentManagement 
+                      tournamentId={id || ""} 
+                      sports={tournament?.sports_config || []} 
+                    />
+                  </TabsContent>
+                );
+              })()}
 
               {approvedSports.length > 0 && (
                 <TabsContent value="schedule">

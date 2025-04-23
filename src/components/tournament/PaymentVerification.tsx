@@ -156,6 +156,7 @@ export function PaymentVerification({
       };
 
       console.log("Creating tournament join request:", joinRequestData);
+      console.log("Selected sport value:", selectedSport);
 
       const { data: requestData, error: requestError } = await supabase
         .from("tournament_join_requests")
@@ -165,6 +166,12 @@ export function PaymentVerification({
 
       if (requestError) {
         console.error("Request error:", requestError);
+        console.error("Error details:", {
+          message: requestError.message,
+          details: requestError.details,
+          hint: requestError.hint,
+          code: requestError.code
+        });
         throw new Error(requestError.message || "Failed to submit join request");
       }
 
